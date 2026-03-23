@@ -1,0 +1,282 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Bricolage+Grotesque:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --radius: 0.75rem;
+    /* Dark Cyberpunk Palette */
+    --background: 0.08 0.015 260;
+    --foreground: 0.94 0.006 260;
+    --card: 0.11 0.02 260;
+    --card-foreground: 0.94 0.006 260;
+    --popover: 0.13 0.025 260;
+    --popover-foreground: 0.94 0.006 260;
+    /* Electric Cyan primary */
+    --primary: 0.78 0.2 200;
+    --primary-foreground: 0.08 0.015 260;
+    /* Soft secondary */
+    --secondary: 0.16 0.03 260;
+    --secondary-foreground: 0.8 0.01 260;
+    --muted: 0.15 0.025 260;
+    --muted-foreground: 0.52 0.03 260;
+    /* Neon purple accent */
+    --accent: 0.72 0.22 285;
+    --accent-foreground: 0.08 0.015 260;
+    --border: 0.22 0.04 260;
+    --input: 0.18 0.03 260;
+    --ring: 0.78 0.2 200;
+    --destructive: 0.65 0.22 25;
+    --destructive-foreground: 0.94 0.006 260;
+    --success: 0.75 0.18 145;
+    --success-bg: 0.14 0.04 145;
+    /* Charts */
+    --chart-1: 0.78 0.2 200;
+    --chart-2: 0.72 0.22 285;
+    --chart-3: 0.75 0.18 145;
+    --chart-4: 0.82 0.18 50;
+    --chart-5: 0.7 0.2 15;
+    /* Sidebar */
+    --sidebar: 0.09 0.018 260;
+    --sidebar-foreground: 0.94 0.006 260;
+    --sidebar-primary: 0.78 0.2 200;
+    --sidebar-primary-foreground: 0.08 0.015 260;
+    --sidebar-accent: 0.14 0.025 260;
+    --sidebar-accent-foreground: 0.8 0.01 260;
+    --sidebar-border: 0.22 0.04 260;
+    --sidebar-ring: 0.78 0.2 200;
+    /* Navy legacy */
+    --navy: 0.09 0.018 260;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    background-image: radial-gradient(
+        ellipse 80% 50% at 50% -20%,
+        oklch(0.78 0.2 200 / 0.06) 0%,
+        transparent 60%
+      ),
+      radial-gradient(
+        ellipse 60% 40% at 80% 80%,
+        oklch(0.72 0.22 285 / 0.04) 0%,
+        transparent 50%
+      );
+    background-attachment: fixed;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: oklch(var(--background));
+  }
+  ::-webkit-scrollbar-thumb {
+    background: oklch(var(--border));
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: oklch(var(--primary) / 0.6);
+  }
+}
+
+@layer components {
+  /* Glassmorphism cards */
+  .glass {
+    background: rgba(17, 22, 48, 0.75) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    border: 1px solid rgba(70, 90, 160, 0.25) !important;
+    box-shadow: 0 4px 32px rgba(0, 0, 0, 0.5), inset 0 1px 0
+      rgba(255, 255, 255, 0.04) !important;
+  }
+
+  .glass-hover {
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  .glass-hover:hover {
+    border-color: rgba(0, 212, 224, 0.3) !important;
+    box-shadow: 0 4px 32px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 212, 224, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+  }
+
+  /* Gradient heading text */
+  .gradient-text {
+    background: linear-gradient(
+      135deg,
+      oklch(0.9 0.15 200) 0%,
+      oklch(0.78 0.2 200) 40%,
+      oklch(0.72 0.22 285) 100%
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .gradient-text-purple {
+    background: linear-gradient(
+      135deg,
+      oklch(0.82 0.2 200) 0%,
+      oklch(0.72 0.22 285) 100%
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Neon glow on buttons / badges */
+  .glow-cyan {
+    box-shadow: 0 0 16px rgba(0, 212, 224, 0.35), 0 0 40px
+      rgba(0, 212, 224, 0.15);
+  }
+  .glow-purple {
+    box-shadow: 0 0 16px rgba(168, 85, 247, 0.35), 0 0 40px
+      rgba(168, 85, 247, 0.15);
+  }
+  .glow-green {
+    box-shadow: 0 0 16px rgba(34, 197, 94, 0.35), 0 0 40px
+      rgba(34, 197, 94, 0.15);
+  }
+
+  /* Timer display glow */
+  .timer-glow {
+    text-shadow: 0 0 20px rgba(0, 212, 224, 0.8), 0 0 40px
+      rgba(0, 212, 224, 0.4), 0 0 80px rgba(0, 212, 224, 0.2);
+  }
+  .timer-glow-orange {
+    text-shadow: 0 0 20px rgba(251, 146, 60, 0.8), 0 0 40px
+      rgba(251, 146, 60, 0.4);
+  }
+
+  /* Neon subject badges */
+  .badge-physics {
+    background: rgba(0, 212, 224, 0.12);
+    color: rgb(103, 232, 249);
+    border-color: rgba(0, 212, 224, 0.3);
+  }
+  .badge-chemistry {
+    background: rgba(34, 197, 94, 0.12);
+    color: rgb(74, 222, 128);
+    border-color: rgba(34, 197, 94, 0.3);
+  }
+  .badge-maths {
+    background: rgba(168, 85, 247, 0.12);
+    color: rgb(196, 141, 255);
+    border-color: rgba(168, 85, 247, 0.3);
+  }
+  .badge-other {
+    background: rgba(251, 146, 60, 0.12);
+    color: rgb(253, 186, 116);
+    border-color: rgba(251, 146, 60, 0.3);
+  }
+
+  /* Toggle buttons for syllabus */
+  .toggle-chapter-active {
+    background: rgba(34, 197, 94, 0.15);
+    color: rgb(74, 222, 128);
+    border-color: rgba(34, 197, 94, 0.4);
+  }
+  .toggle-notes-active {
+    background: rgba(0, 212, 224, 0.15);
+    color: rgb(103, 232, 249);
+    border-color: rgba(0, 212, 224, 0.4);
+  }
+  .toggle-module-active {
+    background: rgba(168, 85, 247, 0.15);
+    color: rgb(196, 141, 255);
+    border-color: rgba(168, 85, 247, 0.4);
+  }
+
+  /* Neon progress bar overrides */
+  .progress-cyan [role="progressbar"] > div,
+  .progress-cyan > div > div {
+    background: linear-gradient(90deg, oklch(0.7 0.2 200), oklch(0.85 0.18 185)) !important;
+    box-shadow: 0 0 8px rgba(0, 212, 224, 0.5);
+  }
+  .progress-purple [role="progressbar"] > div,
+  .progress-purple > div > div {
+    background: linear-gradient(
+      90deg,
+      oklch(0.65 0.22 285),
+      oklch(0.78 0.2 265)
+    ) !important;
+    box-shadow: 0 0 8px rgba(168, 85, 247, 0.5);
+  }
+  .progress-green [role="progressbar"] > div,
+  .progress-green > div > div {
+    background: linear-gradient(90deg, oklch(0.65 0.2 145), oklch(0.8 0.18 155)) !important;
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+  }
+
+  /* Dark inputs */
+  .input-dark {
+    background: oklch(var(--input)) !important;
+    color: oklch(var(--foreground)) !important;
+    border-color: oklch(var(--border)) !important;
+  }
+  .input-dark:focus {
+    border-color: oklch(var(--primary)) !important;
+    box-shadow: 0 0 0 2px oklch(var(--primary) / 0.2), 0 0 12px
+      rgba(0, 212, 224, 0.15) !important;
+    outline: none !important;
+  }
+
+  /* Header glow line */
+  .header-glow {
+    box-shadow: 0 1px 0 rgba(0, 212, 224, 0.15), 0 4px 24px rgba(0, 0, 0, 0.6);
+  }
+
+  /* Stat card colored top border */
+  .card-accent-cyan {
+    border-top: 2px solid rgba(0, 212, 224, 0.5);
+  }
+  .card-accent-blue {
+    border-top: 2px solid rgba(96, 165, 250, 0.5);
+  }
+  .card-accent-purple {
+    border-top: 2px solid rgba(168, 85, 247, 0.5);
+  }
+  .card-accent-orange {
+    border-top: 2px solid rgba(251, 146, 60, 0.5);
+  }
+
+  /* Pulse animation for running timer */
+  @keyframes pulse-glow {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
+  }
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  /* Scanline overlay for futuristic feel */
+  .scanlines::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 3px,
+      rgba(255, 255, 255, 0.01) 3px,
+      rgba(255, 255, 255, 0.01) 4px
+    );
+    pointer-events: none;
+    border-radius: inherit;
+  }
+}
