@@ -4,19 +4,22 @@ import {
   Calendar,
   LayoutDashboard,
   Menu,
+  Rocket,
   Timer,
   X,
 } from "lucide-react";
 import { useState } from "react";
 import Dashboard from "./pages/Dashboard";
+import MissionJeet from "./pages/MissionJeet";
 import Schedule from "./pages/Schedule";
 import Syllabus from "./pages/Syllabus";
 import TimerPage from "./pages/Timer";
 
-type Page = "dashboard" | "syllabus" | "schedule" | "timer";
+type Page = "dashboard" | "missionjeet" | "syllabus" | "schedule" | "timer";
 
 const NAV = [
   { id: "dashboard" as Page, label: "Dashboard", icon: LayoutDashboard },
+  { id: "missionjeet" as Page, label: "Mission Jeet", icon: Rocket },
   { id: "syllabus" as Page, label: "Syllabus", icon: BookOpen },
   { id: "schedule" as Page, label: "Schedule", icon: Calendar },
   { id: "timer" as Page, label: "Timer", icon: Timer },
@@ -28,35 +31,6 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      {/* Top motivation bar */}
-      <div
-        className="w-full flex items-center justify-center gap-6 py-1.5 px-4"
-        style={{
-          background:
-            "linear-gradient(90deg, rgba(0,212,224,0.08), rgba(139,92,246,0.1), rgba(0,212,224,0.08))",
-          borderBottom: "1px solid rgba(0,212,224,0.1)",
-        }}
-      >
-        <img
-          src="/assets/generated/iit-logo-transparent.dim_200x200.png"
-          alt="IIT Logo"
-          className="h-8 w-8 object-contain"
-          style={{ filter: "drop-shadow(0 0 6px rgba(0,212,224,0.5))" }}
-        />
-        <img
-          src="/assets/generated/mission-jeet-logo-transparent.dim_220x80.png"
-          alt="Mission Jeet"
-          className="h-7 object-contain"
-          style={{ filter: "drop-shadow(0 0 8px rgba(0,212,224,0.4))" }}
-        />
-        <img
-          src="/assets/generated/iit-logo-transparent.dim_200x200.png"
-          alt="IIT Logo"
-          className="h-8 w-8 object-contain"
-          style={{ filter: "drop-shadow(0 0 6px rgba(0,212,224,0.5))" }}
-        />
-      </div>
-
       {/* Header */}
       <header
         className="sticky top-0 z-50 w-full header-glow"
@@ -70,12 +44,6 @@ export default function App() {
         <div className="max-w-[1100px] mx-auto px-4 h-14 flex items-center justify-between">
           {/* Brand */}
           <div className="flex items-center gap-2.5">
-            <img
-              src="/assets/generated/iit-logo-transparent.dim_200x200.png"
-              alt="IIT"
-              className="w-8 h-8 object-contain"
-              style={{ filter: "drop-shadow(0 0 8px rgba(0,212,224,0.5))" }}
-            />
             <span className="font-display font-bold text-lg tracking-tight gradient-text">
               JEE Prep
             </span>
@@ -166,6 +134,7 @@ export default function App() {
       {/* Main */}
       <main className="flex-1">
         {page === "dashboard" && <Dashboard onNavigate={setPage} />}
+        {page === "missionjeet" && <MissionJeet onNavigate={setPage} />}
         {page === "syllabus" && <Syllabus />}
         {page === "schedule" && <Schedule />}
         {page === "timer" && <TimerPage />}
