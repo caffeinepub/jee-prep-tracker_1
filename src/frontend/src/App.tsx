@@ -2,6 +2,7 @@ import { Toaster } from "@/components/ui/sonner";
 import {
   BookOpen,
   Calendar,
+  CheckSquare,
   LayoutDashboard,
   Menu,
   Rocket,
@@ -9,13 +10,20 @@ import {
   X,
 } from "lucide-react";
 import { useState } from "react";
+import DailyTracker from "./pages/DailyTracker";
 import Dashboard from "./pages/Dashboard";
 import MissionJeet from "./pages/MissionJeet";
 import Schedule from "./pages/Schedule";
 import Syllabus from "./pages/Syllabus";
 import TimerPage from "./pages/Timer";
 
-type Page = "dashboard" | "missionjeet" | "syllabus" | "schedule" | "timer";
+type Page =
+  | "dashboard"
+  | "missionjeet"
+  | "syllabus"
+  | "schedule"
+  | "timer"
+  | "dailytracker";
 
 const NAV = [
   { id: "dashboard" as Page, label: "Dashboard", icon: LayoutDashboard },
@@ -23,6 +31,7 @@ const NAV = [
   { id: "syllabus" as Page, label: "Syllabus", icon: BookOpen },
   { id: "schedule" as Page, label: "Schedule", icon: Calendar },
   { id: "timer" as Page, label: "Timer", icon: Timer },
+  { id: "dailytracker" as Page, label: "Daily Tracker", icon: CheckSquare },
 ];
 
 export default function App() {
@@ -138,6 +147,7 @@ export default function App() {
         {page === "syllabus" && <Syllabus />}
         {page === "schedule" && <Schedule />}
         {page === "timer" && <TimerPage />}
+        {page === "dailytracker" && <DailyTracker />}
       </main>
 
       {/* Footer */}

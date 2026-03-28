@@ -2,6 +2,7 @@ export interface ChapterData {
   done: boolean;
   notesDone: boolean;
   moduleDone: boolean;
+  ncertDone: boolean;
   revisions: number;
 }
 

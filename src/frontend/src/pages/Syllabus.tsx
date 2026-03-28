@@ -5,9 +5,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { SUBJECTS, buildInitialChapterData } from "../data/syllabusData";
+import {
+  CHEMISTRY_SECTIONS_11,
+  CHEMISTRY_SECTIONS_12,
+  SCHOOL_CHEMISTRY_SECTIONS_11,
+  SCHOOL_CHEMISTRY_SECTIONS_12,
+  SCHOOL_SUBJECTS,
+  SUBJECTS,
+  buildInitialChapterData,
+} from "../data/syllabusData";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import type { ChapterData, ClassMap } from "../types";
+
+type ChapterMode = "jee" | "jeeChemistry" | "school";
 
 const SUBJECT_HEADER: Record<
   string,
@@ -28,25 +38,51 @@ const SUBJECT_HEADER: Record<
     text: "text-purple-400",
     progress: "progress-purple",
   },
+  English: {
+    border: "rgba(251,191,36,0.3)",
+    text: "text-yellow-400",
+    progress: "",
+  },
+  "Physical Education": {
+    border: "rgba(249,115,22,0.3)",
+    text: "text-orange-400",
+    progress: "",
+  },
 };
+
+function isChapterFullyDone(data: ChapterData, mode: ChapterMode): boolean {
+  if (mode === "jee") return data.done && data.notesDone && data.moduleDone;
+  if (mode === "jeeChemistry")
+    return (
+      data.done &&
+      data.notesDone &&
+      data.moduleDone &&
+      (data.ncertDone ?? false)
+    );
+  // school
+  return data.done && data.notesDone && (data.ncertDone ?? false);
+}
 
 function ChapterRow({
   chapter,
   data,
   onChange,
   index,
+  mode = "jee",
 }: {
   chapter: string;
   data: ChapterData;
   onChange: (updated: ChapterData) => void;
   index: number;
+  mode?: ChapterMode;
 }) {
-  const isFullyDone = data.done && data.notesDone && data.moduleDone;
+  const safeData = { ...data, ncertDone: data.ncertDone ?? false };
+  const isFullyDone = isChapterFullyDone(safeData, mode);
 
   const toggle = (field: keyof ChapterData) => {
-    const updated = { ...data, [field]: !data[field] };
+    const updated = { ...safeData, [field]: !safeData[field] };
     onChange(updated);
-    if (field === "done" && !data.done)
+    if (field === "done" && !safeData.done)
       toast.success(`${chapter} marked as done!`);
   };
 
@@ -73,7 +109,7 @@ function ChapterRow({
           data-ocid={`syllabus.done.toggle.${index}`}
           onClick={() => toggle("done")}
           className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-all duration-200 ${
-            data.done
+            safeData.done
               ? "toggle-chapter-active"
               : "text-muted-foreground border-border hover:border-emerald-500/50 hover:text-emerald-400 bg-transparent"
           }`}
@@ -86,7 +122,7 @@ function ChapterRow({
           data-ocid={`syllabus.notes.toggle.${index}`}
           onClick={() => toggle("notesDone")}
           className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-all duration-200 ${
-            data.notesDone
+            safeData.notesDone
               ? "toggle-notes-active"
               : "text-muted-foreground border-border hover:border-cyan-500/50 hover:text-cyan-400 bg-transparent"
           }`}
@@ -94,18 +130,44 @@ function ChapterRow({
           📝 Notes
         </button>
 
-        <button
-          type="button"
-          data-ocid={`syllabus.module.toggle.${index}`}
-          onClick={() => toggle("moduleDone")}
-          className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-all duration-200 ${
-            data.moduleDone
-              ? "toggle-module-active"
-              : "text-muted-foreground border-border hover:border-purple-500/50 hover:text-purple-400 bg-transparent"
-          }`}
-        >
-          📦 Module
-        </button>
+        {(mode === "jee" || mode === "jeeChemistry") && (
+          <button
+            type="button"
+            data-ocid={`syllabus.module.toggle.${index}`}
+            onClick={() => toggle("moduleDone")}
+            className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-all duration-200 ${
+              safeData.moduleDone
+                ? "toggle-module-active"
+                : "text-muted-foreground border-border hover:border-purple-500/50 hover:text-purple-400 bg-transparent"
+            }`}
+          >
+            📦 Module
+          </button>
+        )}
+
+        {(mode === "jeeChemistry" || mode === "school") && (
+          <button
+            type="button"
+            data-ocid={`syllabus.ncert.toggle.${index}`}
+            onClick={() => toggle("ncertDone")}
+            className="px-2.5 py-1 rounded-full text-xs font-medium border transition-all duration-200"
+            style={
+              safeData.ncertDone
+                ? {
+                    background: "rgba(251,146,60,0.15)",
+                    color: "rgb(251,146,60)",
+                    borderColor: "rgba(251,146,60,0.4)",
+                  }
+                : {
+                    background: "transparent",
+                    color: "var(--muted-foreground)",
+                    borderColor: "var(--border)",
+                  }
+            }
+          >
+            📚 NCERT
+          </button>
+        )}
 
         <div className="flex items-center gap-1.5">
           <span className="text-xs text-muted-foreground">Rev:</span>
@@ -114,13 +176,13 @@ function ChapterRow({
             type="number"
             min={0}
             max={99}
-            value={data.revisions}
+            value={safeData.revisions}
             onChange={(e) => {
               const val = Math.max(
                 0,
                 Math.min(99, Number.parseInt(e.target.value) || 0),
               );
-              onChange({ ...data, revisions: val });
+              onChange({ ...safeData, revisions: val });
             }}
             className="w-12 h-7 text-center text-sm rounded-md input-dark border"
           />
@@ -143,11 +205,60 @@ function ChapterRow({
   );
 }
 
+function ChemistrySectionGroup({
+  sections,
+  chapters,
+  classKey,
+  onUpdate,
+  mode,
+}: {
+  sections: Record<string, string[]>;
+  chapters: Record<string, ChapterData>;
+  classKey: string;
+  onUpdate: (
+    classKey: string,
+    subject: string,
+    chapter: string,
+    data: ChapterData,
+  ) => void;
+  mode: "jeeChemistry" | "school";
+}) {
+  return (
+    <div className="space-y-3">
+      {Object.entries(sections).map(([sectionName, chapterNames]) => (
+        <div key={sectionName}>
+          <div className="text-xs font-semibold uppercase tracking-widest text-emerald-300/70 mb-2 pl-1 border-l-2 border-emerald-500/40 ml-1">
+            {sectionName} Chemistry
+          </div>
+          <div className="space-y-1.5 pl-2">
+            {chapterNames.map((ch, idx) =>
+              chapters[ch] ? (
+                <ChapterRow
+                  key={ch}
+                  chapter={ch}
+                  data={chapters[ch]}
+                  index={idx + 1}
+                  mode={mode}
+                  onChange={(updated) =>
+                    onUpdate(classKey, "Chemistry", ch, updated)
+                  }
+                />
+              ) : null,
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function SubjectSection({
   subject,
   chapters,
   classKey,
   onUpdate,
+  mode = "jee",
+  sections,
 }: {
   subject: string;
   chapters: Record<string, ChapterData>;
@@ -158,6 +269,8 @@ function SubjectSection({
     chapter: string,
     data: ChapterData,
   ) => void;
+  mode?: ChapterMode;
+  sections?: Record<string, string[]>;
 }) {
   const [open, setOpen] = useState(false);
   const chList = Object.entries(chapters);
@@ -166,8 +279,8 @@ function SubjectSection({
         (chList.filter(([, v]) => v.done).length / chList.length) * 100,
       )
     : 0;
-  const fullyDone = chList.filter(
-    ([, v]) => v.done && v.notesDone && v.moduleDone,
+  const fullyDone = chList.filter(([, v]) =>
+    isChapterFullyDone({ ...v, ncertDone: v.ncertDone ?? false }, mode),
   ).length;
   const theme = SUBJECT_HEADER[subject] || {
     border: "rgba(255,255,255,0.2)",
@@ -217,16 +330,31 @@ function SubjectSection({
       </button>
 
       {open && (
-        <div className="mt-2 space-y-1.5 pl-2">
-          {chList.map(([ch, data], idx) => (
-            <ChapterRow
-              key={ch}
-              chapter={ch}
-              data={data}
-              index={idx + 1}
-              onChange={(updated) => onUpdate(classKey, subject, ch, updated)}
+        <div className="mt-2 pl-2">
+          {sections ? (
+            <ChemistrySectionGroup
+              sections={sections}
+              chapters={chapters}
+              classKey={classKey}
+              onUpdate={onUpdate}
+              mode={mode as "jeeChemistry" | "school"}
             />
-          ))}
+          ) : (
+            <div className="space-y-1.5">
+              {chList.map(([ch, data], idx) => (
+                <ChapterRow
+                  key={ch}
+                  chapter={ch}
+                  data={data}
+                  index={idx + 1}
+                  mode={mode}
+                  onChange={(updated) =>
+                    onUpdate(classKey, subject, ch, updated)
+                  }
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -257,13 +385,17 @@ export default function Syllabus() {
     }));
   };
 
-  const getSummary = (classKey: string) => {
+  const getSummary = (classKey: string, isSchool = false) => {
     let total = 0;
     let done = 0;
     for (const sub of Object.values(chapters[classKey] || {})) {
       for (const ch of Object.values(sub)) {
         total++;
-        if (ch.done && ch.notesDone && ch.moduleDone) done++;
+        const safeData = { ...ch, ncertDone: ch.ncertDone ?? false };
+        const fullyDone = isSchool
+          ? safeData.done && safeData.notesDone && safeData.ncertDone
+          : safeData.done && safeData.notesDone && safeData.moduleDone;
+        if (fullyDone) done++;
       }
     }
     return { total, done, pct: total ? Math.round((done / total) * 100) : 0 };
@@ -293,7 +425,7 @@ export default function Syllabus() {
             data-ocid="syllabus.class11.tab"
             className="data-[state=active]:text-primary"
           >
-            Class 11{" "}
+            JEE Class 11{" "}
             <span className="ml-1 text-xs opacity-60">
               ({getSummary("class11").done}/{getSummary("class11").total})
             </span>
@@ -303,10 +435,17 @@ export default function Syllabus() {
             data-ocid="syllabus.class12.tab"
             className="data-[state=active]:text-primary"
           >
-            Class 12{" "}
+            JEE Class 12{" "}
             <span className="ml-1 text-xs opacity-60">
               ({getSummary("class12").done}/{getSummary("class12").total})
             </span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="school"
+            data-ocid="syllabus.school.tab"
+            className="data-[state=active]:text-primary"
+          >
+            🏫 School Level
           </TabsTrigger>
         </TabsList>
 
@@ -326,6 +465,14 @@ export default function Syllabus() {
                       chapters={chapters[cls]?.[sub] || {}}
                       classKey={cls}
                       onUpdate={handleUpdate}
+                      mode={sub === "Chemistry" ? "jeeChemistry" : "jee"}
+                      sections={
+                        sub === "Chemistry"
+                          ? cls === "class11"
+                            ? CHEMISTRY_SECTIONS_11
+                            : CHEMISTRY_SECTIONS_12
+                          : undefined
+                      }
                     />
                   </CardContent>
                 </Card>
@@ -333,6 +480,84 @@ export default function Syllabus() {
             </div>
           </TabsContent>
         ))}
+
+        <TabsContent value="school">
+          <div
+            className="mb-4 px-4 py-3 rounded-xl text-sm text-muted-foreground"
+            style={{
+              background: "rgba(251,146,60,0.06)",
+              border: "1px solid rgba(251,146,60,0.15)",
+            }}
+          >
+            📚 School NCERT level tracking — Chapter Done, Notes Done, NCERT
+            Completed, Revisions (no Module)
+          </div>
+
+          <Tabs defaultValue="school11">
+            <TabsList
+              className="mb-4"
+              style={{
+                background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.08)",
+              }}
+            >
+              <TabsTrigger
+                value="school11"
+                data-ocid="syllabus.school11.tab"
+                className="data-[state=active]:text-primary"
+              >
+                Class 11{" "}
+                <span className="ml-1 text-xs opacity-60">
+                  ({getSummary("school11", true).done}/
+                  {getSummary("school11", true).total})
+                </span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="school12"
+                data-ocid="syllabus.school12.tab"
+                className="data-[state=active]:text-primary"
+              >
+                Class 12{" "}
+                <span className="ml-1 text-xs opacity-60">
+                  ({getSummary("school12", true).done}/
+                  {getSummary("school12", true).total})
+                </span>
+              </TabsTrigger>
+            </TabsList>
+
+            {(["school11", "school12"] as const).map((cls) => (
+              <TabsContent key={cls} value={cls}>
+                <div className="grid md:grid-cols-1 gap-4">
+                  {SCHOOL_SUBJECTS.map((sub) => (
+                    <Card key={sub} className="glass border-0">
+                      <CardHeader className="pb-2 pt-4 px-4">
+                        <CardTitle className="text-xs text-muted-foreground font-medium uppercase tracking-widest">
+                          {sub}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="px-4 pb-4">
+                        <SubjectSection
+                          subject={sub}
+                          chapters={chapters[cls]?.[sub] || {}}
+                          classKey={cls}
+                          onUpdate={handleUpdate}
+                          mode="school"
+                          sections={
+                            sub === "Chemistry"
+                              ? cls === "school11"
+                                ? SCHOOL_CHEMISTRY_SECTIONS_11
+                                : SCHOOL_CHEMISTRY_SECTIONS_12
+                              : undefined
+                          }
+                        />
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </TabsContent>
+            ))}
+          </Tabs>
+        </TabsContent>
       </Tabs>
     </div>
   );
