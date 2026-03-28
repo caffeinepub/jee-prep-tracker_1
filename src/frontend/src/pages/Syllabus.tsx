@@ -3,13 +3,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   CHEMISTRY_SECTIONS_11,
   CHEMISTRY_SECTIONS_12,
   SCHOOL_CHEMISTRY_SECTIONS_11,
   SCHOOL_CHEMISTRY_SECTIONS_12,
+  SCHOOL_CLASS_11_CHAPTERS,
+  SCHOOL_CLASS_12_CHAPTERS,
   SCHOOL_SUBJECTS,
   SUBJECTS,
   buildInitialChapterData,
@@ -111,7 +113,7 @@ function ChapterRow({
           className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-all duration-200 ${
             safeData.done
               ? "toggle-chapter-active"
-              : "text-muted-foreground border-border hover:border-emerald-500/50 hover:text-emerald-400 bg-transparent"
+              : "text-white/60 border-white/40 hover:border-emerald-500/70 hover:text-emerald-400 bg-transparent"
           }`}
         >
           ✓ Chapter
@@ -124,7 +126,7 @@ function ChapterRow({
           className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-all duration-200 ${
             safeData.notesDone
               ? "toggle-notes-active"
-              : "text-muted-foreground border-border hover:border-cyan-500/50 hover:text-cyan-400 bg-transparent"
+              : "text-white/60 border-white/40 hover:border-cyan-500/70 hover:text-cyan-400 bg-transparent"
           }`}
         >
           📝 Notes
@@ -138,7 +140,7 @@ function ChapterRow({
             className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-all duration-200 ${
               safeData.moduleDone
                 ? "toggle-module-active"
-                : "text-muted-foreground border-border hover:border-purple-500/50 hover:text-purple-400 bg-transparent"
+                : "text-white/60 border-white/40 hover:border-purple-500/70 hover:text-purple-400 bg-transparent"
             }`}
           >
             📦 Module
@@ -154,14 +156,16 @@ function ChapterRow({
             style={
               safeData.ncertDone
                 ? {
-                    background: "rgba(251,146,60,0.15)",
+                    background: "rgba(251,146,60,0.18)",
                     color: "rgb(251,146,60)",
-                    borderColor: "rgba(251,146,60,0.4)",
+                    borderColor: "rgba(251,146,60,0.6)",
+                    boxShadow:
+                      "0 0 8px rgba(251,146,60,0.35), inset 0 0 6px rgba(251,146,60,0.1)",
                   }
                 : {
                     background: "transparent",
-                    color: "var(--muted-foreground)",
-                    borderColor: "var(--border)",
+                    color: "rgba(255,255,255,0.6)",
+                    borderColor: "rgba(255,255,255,0.4)",
                   }
             }
           >
@@ -361,11 +365,56 @@ function SubjectSection({
   );
 }
 
+const DEFAULT_CHAPTER_DATA: ChapterData = {
+  done: false,
+  notesDone: false,
+  moduleDone: false,
+  ncertDone: false,
+  revisions: 0,
+};
+
 export default function Syllabus() {
   const [chapters, setChapters] = useLocalStorage<ClassMap>(
     "jee_chapters",
     buildInitialChapterData(),
   );
+
+  // Migration: fill in any missing school11/school12 subjects or chapters
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional mount-only migration
+  useEffect(() => {
+    const schoolDefaults: Record<string, Record<string, string[]>> = {
+      school11: SCHOOL_CLASS_11_CHAPTERS,
+      school12: SCHOOL_CLASS_12_CHAPTERS,
+    };
+
+    let needsUpdate = false;
+    const merged = { ...chapters };
+
+    for (const [classKey, subjectChapters] of Object.entries(schoolDefaults)) {
+      const existingClass = merged[classKey] ?? {};
+      const newClass = { ...existingClass };
+
+      for (const [subject, chapterList] of Object.entries(subjectChapters)) {
+        const existingSubject = newClass[subject] ?? {};
+        const newSubject = { ...existingSubject };
+
+        for (const ch of chapterList) {
+          if (!newSubject[ch]) {
+            newSubject[ch] = { ...DEFAULT_CHAPTER_DATA };
+            needsUpdate = true;
+          }
+        }
+
+        newClass[subject] = newSubject;
+      }
+
+      merged[classKey] = newClass;
+    }
+
+    if (needsUpdate) {
+      setChapters(merged);
+    }
+  }, []);
 
   const handleUpdate = (
     classKey: string,
