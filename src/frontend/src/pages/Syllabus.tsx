@@ -373,6 +373,375 @@ const DEFAULT_CHAPTER_DATA: ChapterData = {
   revisions: 0,
 };
 
+interface K3BImage {
+  id: string;
+  src: string;
+  label: string;
+}
+
+const DEFAULT_K3B_IMAGES: K3BImage[] = [
+  {
+    id: "default-1",
+    src: "/assets/uploads/screenshot_2026-03-30_111145-019d3d44-dcea-7046-9129-90dda8a67ade-1.png",
+    label: "Formula Sheet 1",
+  },
+  {
+    id: "default-2",
+    src: "/assets/uploads/image-019d3d45-386f-7093-8106-40969cc91c35-2.png",
+    label: "Formula Sheet 2",
+  },
+];
+
+function loadK3BImages(): K3BImage[] {
+  try {
+    const raw = localStorage.getItem("k3b_images");
+    if (raw) return JSON.parse(raw) as K3BImage[];
+  } catch {
+    // ignore
+  }
+  return DEFAULT_K3B_IMAGES;
+}
+
+function saveK3BImages(imgs: K3BImage[]) {
+  try {
+    localStorage.setItem("k3b_images", JSON.stringify(imgs));
+  } catch {
+    // ignore
+  }
+}
+
+function K3BSection() {
+  const [open, setOpen] = useState(true);
+  const [images, setImages] = useState<K3BImage[]>(loadK3BImages);
+  const [notes, setNotes] = useState<string>(() => {
+    try {
+      return localStorage.getItem("k3b_notes") ?? "";
+    } catch {
+      return "";
+    }
+  });
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const [urlInput, setUrlInput] = useState("");
+  const [labelInput, setLabelInput] = useState("");
+
+  const handleNotesChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    setNotes(val);
+    try {
+      localStorage.setItem("k3b_notes", val);
+    } catch {
+      // ignore storage errors
+    }
+  };
+
+  const removeImage = (id: string) => {
+    const updated = images.filter((img) => img.id !== id);
+    setImages(updated);
+    saveK3BImages(updated);
+    toast.success("Image removed from K3B");
+  };
+
+  const addImageFromFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const src = ev.target?.result as string;
+      const newImg: K3BImage = {
+        id: `k3b-${Date.now()}`,
+        src,
+        label: file.name.replace(/\.[^.]+$/, ""),
+      };
+      const updated = [...images, newImg];
+      setImages(updated);
+      saveK3BImages(updated);
+      toast.success("Image added to K3B");
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const addImageFromUrl = () => {
+    if (!urlInput.trim()) return;
+    const newImg: K3BImage = {
+      id: `k3b-${Date.now()}`,
+      src: urlInput.trim(),
+      label: labelInput.trim() || "Formula Sheet",
+    };
+    const updated = [...images, newImg];
+    setImages(updated);
+    saveK3BImages(updated);
+    setUrlInput("");
+    setLabelInput("");
+    setShowUrlInput(false);
+    toast.success("Image added to K3B");
+  };
+
+  return (
+    <div
+      className="mb-8 rounded-2xl overflow-hidden"
+      style={{
+        border: "1px solid rgba(251,191,36,0.3)",
+        boxShadow: "0 0 30px rgba(251,191,36,0.08), 0 4px 24px rgba(0,0,0,0.4)",
+        background:
+          "linear-gradient(135deg, rgba(20,20,20,0.9) 0%, rgba(30,25,10,0.85) 100%)",
+        backdropFilter: "blur(12px)",
+      }}
+    >
+      {/* Header */}
+      <button
+        type="button"
+        data-ocid="k3b.panel.toggle"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between px-5 py-4 text-left transition-all duration-200 hover:brightness-110"
+        style={{
+          background: "rgba(251,191,36,0.06)",
+          borderBottom: open ? "1px solid rgba(251,191,36,0.15)" : "none",
+        }}
+      >
+        <div className="flex items-center gap-3">
+          <span
+            className="text-lg font-bold font-display"
+            style={{
+              background: "linear-gradient(90deg, #fbbf24, #f59e0b, #fcd34d)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              textShadow: "0 0 20px rgba(251,191,36,0.4)",
+              filter: "drop-shadow(0 0 8px rgba(251,191,36,0.5))",
+            }}
+          >
+            ⚡ K3B
+          </span>
+          <span
+            className="text-sm font-semibold"
+            style={{
+              color: "rgba(251,191,36,0.85)",
+              letterSpacing: "0.04em",
+            }}
+          >
+            — KUCH KAAM KI BAAT
+          </span>
+          <span className="text-xs text-muted-foreground hidden sm:inline">
+            Important formulas, identities &amp; notes
+          </span>
+        </div>
+        <div
+          className="flex items-center gap-2 text-xs"
+          style={{ color: "rgba(251,191,36,0.6)" }}
+        >
+          <span>{open ? "Collapse" : "Expand"}</span>
+          {open ? (
+            <ChevronDown className="w-4 h-4" />
+          ) : (
+            <ChevronRight className="w-4 h-4" />
+          )}
+        </div>
+      </button>
+
+      {/* Body */}
+      {open && (
+        <div className="p-5 space-y-5">
+          {/* Images grid */}
+          {images.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {images.map((img) => (
+                <div
+                  key={img.id}
+                  className="relative rounded-xl overflow-hidden group"
+                  style={{
+                    background: "rgba(0,0,0,0.5)",
+                    border: "1px solid rgba(251,191,36,0.15)",
+                  }}
+                >
+                  <img
+                    src={img.src}
+                    alt={img.label}
+                    className="w-full max-w-full rounded-xl"
+                    style={{ objectFit: "contain", display: "block" }}
+                  />
+                  {/* Label */}
+                  <div
+                    className="absolute bottom-0 left-0 right-0 px-3 py-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                    style={{
+                      background: "rgba(0,0,0,0.75)",
+                      color: "rgba(251,191,36,0.8)",
+                    }}
+                  >
+                    {img.label}
+                  </div>
+                  {/* Remove button */}
+                  <button
+                    type="button"
+                    onClick={() => removeImage(img.id)}
+                    className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white font-bold text-sm"
+                    style={{
+                      background: "rgba(220,38,38,0.85)",
+                      border: "1px solid rgba(255,100,100,0.5)",
+                      boxShadow: "0 0 8px rgba(220,38,38,0.4)",
+                    }}
+                    title="Remove image"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {images.length === 0 && (
+            <div
+              className="rounded-xl px-4 py-6 text-center text-sm"
+              style={{
+                border: "1px dashed rgba(251,191,36,0.2)",
+                color: "rgba(251,191,36,0.4)",
+              }}
+            >
+              No images yet. Upload one below.
+            </div>
+          )}
+
+          {/* Add image controls */}
+          <div className="flex flex-wrap gap-3 items-center">
+            {/* File upload */}
+            <label
+              className="cursor-pointer px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 hover:brightness-110 flex items-center gap-2"
+              style={{
+                background: "rgba(251,191,36,0.12)",
+                border: "1px solid rgba(251,191,36,0.35)",
+                color: "rgba(251,191,36,0.9)",
+              }}
+            >
+              📁 Upload Image
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={addImageFromFile}
+              />
+            </label>
+
+            {/* URL button */}
+            <button
+              type="button"
+              onClick={() => setShowUrlInput((v) => !v)}
+              className="px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 hover:brightness-110"
+              style={{
+                background: "rgba(251,191,36,0.12)",
+                border: "1px solid rgba(251,191,36,0.35)",
+                color: "rgba(251,191,36,0.9)",
+              }}
+            >
+              🔗 Add by URL
+            </button>
+          </div>
+
+          {/* URL input form */}
+          {showUrlInput && (
+            <div
+              className="rounded-xl p-4 space-y-3"
+              style={{
+                background: "rgba(0,0,0,0.4)",
+                border: "1px solid rgba(251,191,36,0.2)",
+              }}
+            >
+              <input
+                type="text"
+                value={urlInput}
+                onChange={(e) => setUrlInput(e.target.value)}
+                placeholder="Paste image URL..."
+                className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
+                style={{
+                  background: "rgba(10,10,10,0.8)",
+                  border: "1px solid rgba(251,191,36,0.3)",
+                  color: "rgba(255,255,255,0.85)",
+                }}
+              />
+              <input
+                type="text"
+                value={labelInput}
+                onChange={(e) => setLabelInput(e.target.value)}
+                placeholder="Label (optional)"
+                className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
+                style={{
+                  background: "rgba(10,10,10,0.8)",
+                  border: "1px solid rgba(251,191,36,0.2)",
+                  color: "rgba(255,255,255,0.7)",
+                }}
+              />
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={addImageFromUrl}
+                  className="px-4 py-2 rounded-lg text-xs font-semibold"
+                  style={{
+                    background: "rgba(251,191,36,0.2)",
+                    border: "1px solid rgba(251,191,36,0.5)",
+                    color: "#fbbf24",
+                  }}
+                >
+                  Add
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowUrlInput(false);
+                    setUrlInput("");
+                    setLabelInput("");
+                  }}
+                  className="px-4 py-2 rounded-lg text-xs font-semibold"
+                  style={{
+                    background: "rgba(100,100,100,0.15)",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                    color: "rgba(255,255,255,0.5)",
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Notes textarea */}
+          <div>
+            <label
+              htmlFor="k3b-notes"
+              className="block text-xs font-semibold uppercase tracking-widest mb-2"
+              style={{ color: "rgba(251,191,36,0.7)" }}
+            >
+              Notes / Formulas
+            </label>
+            <textarea
+              id="k3b-notes"
+              data-ocid="k3b.notes.textarea"
+              value={notes}
+              onChange={handleNotesChange}
+              placeholder="Paste formulas, identities, important notes here..."
+              rows={5}
+              className="w-full rounded-xl px-4 py-3 text-sm resize-y transition-all duration-200 focus:outline-none"
+              style={{
+                background: "rgba(10,10,10,0.8)",
+                border: "1px solid rgba(251,191,36,0.25)",
+                color: "rgba(255,255,255,0.85)",
+                fontFamily: "monospace",
+                lineHeight: 1.6,
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = "rgba(251,191,36,0.6)";
+                e.currentTarget.style.boxShadow =
+                  "0 0 12px rgba(251,191,36,0.15)";
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = "rgba(251,191,36,0.25)";
+                e.currentTarget.style.boxShadow = "none";
+              }}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Syllabus() {
   const [chapters, setChapters] = useLocalStorage<ClassMap>(
     "jee_chapters",
@@ -460,6 +829,9 @@ export default function Syllabus() {
           Track chapter completion, notes, modules, and revisions
         </p>
       </div>
+
+      {/* K3B Section */}
+      <K3BSection />
 
       <Tabs defaultValue="class11" data-ocid="syllabus.class.tab">
         <TabsList

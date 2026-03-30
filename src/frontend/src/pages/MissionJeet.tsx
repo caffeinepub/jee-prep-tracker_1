@@ -111,10 +111,10 @@ export default function MissionJeet({ onNavigate }: Props) {
     return Math.round((done / total) * 100);
   }, [chapters]);
 
-  const jeeDate = new Date("2026-04-05");
+  const jeeDate = new Date("2028-04-05");
   const today = new Date();
   const msLeft = jeeDate.getTime() - today.getTime();
-  const daysLeft = Math.max(0, Math.ceil(msLeft / (1000 * 60 * 60 * 24)));
+  const daysLeft = Math.max(0, Math.ceil(msLeft / (1000 * 60 * 60 * 24)) - 8);
   const weeksLeft = Math.floor(daysLeft / 7);
 
   const dayOfYear = Math.floor(
@@ -214,7 +214,7 @@ export default function MissionJeet({ onNavigate }: Props) {
             </div>
           </div>
           <div className="mt-4 text-center text-xs text-foreground/30">
-            Target: April 5, 2026
+            Target: April 5, 2028 (−8 day buffer)
           </div>
         </div>
 
