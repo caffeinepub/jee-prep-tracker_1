@@ -11,7 +11,7 @@ import {
   Target,
   TrendingUp,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 
@@ -30,9 +30,11 @@ function todayStr() {
   return new Date().toISOString().split("T")[0];
 }
 
-function formatHours(h: number) {
-  if (h === 0) return "0h";
-  return h % 1 === 0 ? `${h}h` : `${h.toFixed(1)}h`;
+// Safe: handles non-numbers that may come from corrupted localStorage
+function formatHours(h: unknown) {
+  const n = typeof h === "number" && !Number.isNaN(h) ? h : 0;
+  if (n === 0) return "0h";
+  return n % 1 === 0 ? `${n}h` : `${n.toFixed(1)}h`;
 }
 
 // Get Monday of the week containing the given date
@@ -89,8 +91,13 @@ function getWeeksInMonth(year: number, month: number): string[] {
   return Array.from(seen).sort();
 }
 
+// Safe: handles undefined/null log
 function sumHours(dates: string[], log: Record<string, number>): number {
-  return dates.reduce((sum, d) => sum + (log[d] || 0), 0);
+  if (!log || typeof log !== "object") return 0;
+  return dates.reduce((sum, d) => {
+    const v = log[d];
+    return sum + (typeof v === "number" && !Number.isNaN(v) ? v : 0);
+  }, 0);
 }
 
 const MONTH_NAMES = [
@@ -124,7 +131,8 @@ const FULL_MONTH_NAMES = [
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export default function TimerPage() {
-  const [dailyLog, setDailyLog] = useLocalStorage<Record<string, number>>(
+  // Raw storage — may contain old data from previous timer versions
+  const [rawDailyLog, setDailyLog] = useLocalStorage<Record<string, number>>(
     "jee_daily_log",
     {},
   );
@@ -132,6 +140,35 @@ export default function TimerPage() {
     "jee_weekly_target",
     40,
   );
+
+  // Normalize: only keep YYYY-MM-DD keys with numeric values.
+  // This prevents crashes caused by data from old timer versions stored
+  // under the same localStorage key with a different structure.
+  const dailyLog = useMemo((): Record<string, number> => {
+    if (
+      !rawDailyLog ||
+      typeof rawDailyLog !== "object" ||
+      Array.isArray(rawDailyLog)
+    ) {
+      return {};
+    }
+    return Object.fromEntries(
+      Object.entries(rawDailyLog).filter(
+        ([k, v]) =>
+          /^\d{4}-\d{2}-\d{2}$/.test(k) &&
+          typeof v === "number" &&
+          !Number.isNaN(v),
+      ),
+    );
+  }, [rawDailyLog]);
+
+  // Safe weeklyTarget fallback
+  const safeTarget =
+    typeof weeklyTarget === "number" &&
+    !Number.isNaN(weeklyTarget) &&
+    weeklyTarget > 0
+      ? weeklyTarget
+      : 40;
 
   const [elapsed, setElapsed] = useState(0);
   const [running, setRunning] = useState(false);
@@ -166,10 +203,11 @@ export default function TimerPage() {
     if (elapsed > 0) {
       const hrs = elapsed / 3600;
       const today = todayStr();
-      setDailyLog((prev) => ({
-        ...prev,
-        [today]: Math.round(((prev[today] || 0) + hrs) * 100) / 100,
-      }));
+      const current = dailyLog[today] || 0;
+      setDailyLog({
+        ...dailyLog,
+        [today]: Math.round((current + hrs) * 100) / 100,
+      });
       toast.success(
         `Session saved: ${formatTime(elapsed)} added to today's log`,
       );
@@ -186,7 +224,7 @@ export default function TimerPage() {
       return;
     }
     const today = todayStr();
-    setDailyLog((prev) => ({ ...prev, [today]: Math.round(val * 100) / 100 }));
+    setDailyLog({ ...dailyLog, [today]: Math.round(val * 100) / 100 });
     toast.success(`Logged ${formatHours(val)} for today!`);
     setTodayInput("");
   };
@@ -202,7 +240,7 @@ export default function TimerPage() {
   const currentWeekStart = getWeekStart(today);
   const currentWeekDays = getWeekDays(currentWeekStart);
   const thisWeekHours = sumHours(currentWeekDays, dailyLog);
-  const weekPct = Math.min((thisWeekHours / weeklyTarget) * 100, 100);
+  const weekPct = Math.min((thisWeekHours / safeTarget) * 100, 100);
   const todayLogged = dailyLog[today] || 0;
 
   // This month
@@ -380,7 +418,7 @@ export default function TimerPage() {
                   type="number"
                   min={1}
                   max={168}
-                  value={weeklyTarget}
+                  value={safeTarget}
                   onChange={(e) =>
                     setWeeklyTarget(
                       Math.max(1, Number.parseInt(e.target.value) || 40),
@@ -509,7 +547,7 @@ export default function TimerPage() {
                 {formatHours(Math.round(thisWeekHours * 10) / 10)}
               </span>
               <span className="text-xs text-muted-foreground">
-                / {weeklyTarget}h target
+                / {safeTarget}h target
               </span>
             </div>
           </div>
@@ -537,8 +575,8 @@ export default function TimerPage() {
                 {Math.round(weekPct)}% of weekly target
               </span>
               <span className="text-[11px] text-muted-foreground">
-                {weeklyTarget - thisWeekHours > 0
-                  ? `${formatHours(Math.round(Math.max(0, weeklyTarget - thisWeekHours) * 10) / 10)} remaining`
+                {safeTarget - thisWeekHours > 0
+                  ? `${formatHours(Math.round(Math.max(0, safeTarget - thisWeekHours) * 10) / 10)} remaining`
                   : "\u2713 Target reached!"}
               </span>
             </div>
@@ -550,7 +588,7 @@ export default function TimerPage() {
               const isToday = date === today;
               const dayDate = new Date(`${date}T12:00:00`);
               const isFuture = dayDate > now;
-              const dailyTarget = weeklyTarget / 7;
+              const dailyTarget = safeTarget / 7;
               const barPct =
                 dailyTarget > 0 ? Math.min((hrs / dailyTarget) * 100, 100) : 0;
               return (
@@ -641,8 +679,8 @@ export default function TimerPage() {
                 const weekHours = sumHours(weekDays, dailyLog);
                 const isCurrentWeek = weekStart === currentWeekStart;
                 const pct =
-                  weeklyTarget > 0
-                    ? Math.min((weekHours / weeklyTarget) * 100, 100)
+                  safeTarget > 0
+                    ? Math.min((weekHours / safeTarget) * 100, 100)
                     : 0;
                 const isExpanded = expandedWeek === weekStart;
                 return (
@@ -727,7 +765,7 @@ export default function TimerPage() {
                                 <div
                                   className="h-full rounded-full"
                                   style={{
-                                    width: `${Math.min((hrs / Math.max(weeklyTarget / 7, 1)) * 100, 100)}%`,
+                                    width: `${Math.min((hrs / Math.max(safeTarget / 7, 1)) * 100, 100)}%`,
                                     background: isT
                                       ? "rgba(0,212,224,0.6)"
                                       : "rgba(168,85,247,0.5)",
