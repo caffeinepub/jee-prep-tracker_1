@@ -55,13 +55,19 @@ const SUBJECT_HEADER: Record<
 // Glow styles for Physics, Chemistry, Maths subject titles
 const SUBJECT_TITLE_GLOW: Record<string, React.CSSProperties> = {
   Physics: {
-    textShadow: "0 0 8px rgba(0,212,224,0.45)",
+    textShadow:
+      "0 0 10px rgba(0,212,224,0.9), 0 0 20px rgba(0,212,224,0.5), 0 0 40px rgba(0,212,224,0.25)",
+    filter: "drop-shadow(0 0 6px rgba(0,212,224,0.75))",
   },
   Chemistry: {
-    textShadow: "0 0 8px rgba(34,197,94,0.45)",
+    textShadow:
+      "0 0 10px rgba(34,197,94,0.9), 0 0 20px rgba(34,197,94,0.5), 0 0 40px rgba(34,197,94,0.25)",
+    filter: "drop-shadow(0 0 6px rgba(34,197,94,0.75))",
   },
   Maths: {
-    textShadow: "0 0 8px rgba(168,85,247,0.45)",
+    textShadow:
+      "0 0 10px rgba(168,85,247,0.9), 0 0 20px rgba(168,85,247,0.5), 0 0 40px rgba(168,85,247,0.25)",
+    filter: "drop-shadow(0 0 6px rgba(168,85,247,0.75))",
   },
 };
 
@@ -523,7 +529,8 @@ function K3BSection() {
               background: "linear-gradient(90deg, #fbbf24, #f59e0b, #fcd34d)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
-              textShadow: "0 0 8px rgba(251,191,36,0.3)",
+              textShadow: "0 0 20px rgba(251,191,36,0.4)",
+              filter: "drop-shadow(0 0 8px rgba(251,191,36,0.5))",
             }}
           >
             ⚡ K3B

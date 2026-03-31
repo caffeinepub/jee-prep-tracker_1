@@ -288,14 +288,22 @@ function CompactQuoteCard() {
 
   return (
     <>
+      <style>{`
+        @keyframes quoteGlow {
+          from { box-shadow: 0 0 18px rgba(251,191,36,0.45), 0 0 40px rgba(251,191,36,0.2), 0 0 80px rgba(251,191,36,0.08), 0 2px 12px rgba(0,0,0,0.6); border-color: rgba(251,191,36,0.6); }
+          to   { box-shadow: 0 0 28px rgba(251,191,36,0.75), 0 0 60px rgba(251,191,36,0.35), 0 0 100px rgba(251,191,36,0.15), 0 2px 12px rgba(0,0,0,0.6); border-color: rgba(251,191,36,0.9); }
+        }
+      `}</style>
       <div
         className="max-w-xs rounded-xl px-3 py-2.5 shrink-0"
         style={{
-          border: "1px solid rgba(251,191,36,0.4)",
-          boxShadow: "0 0 12px rgba(251,191,36,0.2), 0 2px 8px rgba(0,0,0,0.5)",
+          border: "1px solid rgba(251,191,36,0.6)",
+          boxShadow:
+            "0 0 18px rgba(251,191,36,0.45), 0 0 40px rgba(251,191,36,0.2), 0 0 80px rgba(251,191,36,0.08), 0 2px 12px rgba(0,0,0,0.6)",
           background:
             "linear-gradient(135deg, rgba(20,20,20,0.95) 0%, rgba(40,30,5,0.92) 100%)",
           backdropFilter: "blur(16px)",
+          animation: "quoteGlow 3s ease-in-out infinite alternate",
         }}
       >
         <p
@@ -306,7 +314,7 @@ function CompactQuoteCard() {
             className="inline w-3 h-3 mr-1 shrink-0"
             style={{
               color: "#fbbf24",
-              filter: "drop-shadow(0 0 3px rgba(251,191,36,0.5))",
+              filter: "drop-shadow(0 0 6px rgba(251,191,36,0.9))",
               verticalAlign: "middle",
             }}
           />
