@@ -3,25 +3,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import {
   BookOpen,
-  CalendarDays,
   CheckCircle2,
   Clock,
   FileText,
   Layers,
   Target,
+  TrendingUp,
   Zap,
 } from "lucide-react";
 import { useMemo } from "react";
 import { SUBJECTS, buildInitialChapterData } from "../data/syllabusData";
 import { useLocalStorage } from "../hooks/useLocalStorage";
-import type {
-  ClassMap,
-  ScheduleEntry,
-  TimerSession,
-  WeeklyTargets,
-} from "../types";
+import type { ClassMap } from "../types";
 
-type Page = "dashboard" | "syllabus" | "schedule" | "timer";
+type Page = "dashboard" | "syllabus" | "timer" | "dailytracker" | "missionjeet";
 
 interface Props {
   onNavigate: (p: Page) => void;
@@ -33,13 +28,6 @@ const STAT_ACCENTS = [
   "card-accent-purple",
   "card-accent-orange",
 ] as const;
-
-const SUBJECT_BADGE: Record<string, string> = {
-  Physics: "badge-physics",
-  Chemistry: "badge-chemistry",
-  Maths: "badge-maths",
-  Other: "badge-other",
-};
 
 const SUBJECT_PROGRESS: Record<string, string> = {
   Physics: "progress-cyan",
@@ -347,27 +335,16 @@ function CompactQuoteCard() {
   );
 }
 
-function getWeekStart() {
-  const d = new Date();
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  d.setDate(diff);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
 export default function Dashboard({ onNavigate }: Props) {
   const [chapters] = useLocalStorage<ClassMap>(
     "jee_chapters",
     buildInitialChapterData(),
   );
-  const [sessions] = useLocalStorage<TimerSession[]>("jee_sessions", []);
-  const [targets] = useLocalStorage<WeeklyTargets>("jee_targets", {
-    Physics: 10,
-    Chemistry: 10,
-    Maths: 10,
-  });
-  const [schedule] = useLocalStorage<ScheduleEntry[]>("jee_schedule", []);
+  const [dailyLog] = useLocalStorage<Record<string, number>>(
+    "jee_daily_log",
+    {},
+  );
+  const [targetHours] = useLocalStorage<number>("jee_overall_target", 3000);
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -389,22 +366,18 @@ export default function Dashboard({ onNavigate }: Props) {
     return { totalChapters, doneChapters, notesDone, moduleDone };
   }, [chapters]);
 
-  const weeklyStudied = useMemo(() => {
-    const weekStart = getWeekStart();
-    const bySubject: Record<string, number> = {};
-    for (const s of sessions) {
-      const sDate = new Date(s.date);
-      if (sDate >= weekStart) {
-        bySubject[s.subject] = (bySubject[s.subject] || 0) + s.duration;
-      }
-    }
-    return bySubject;
-  }, [sessions]);
-
-  const todaySchedule = useMemo(
-    () => schedule.filter((e) => e.date === today).slice(0, 3),
-    [schedule, today],
-  );
+  // Overall study stats
+  const studyStats = useMemo(() => {
+    const allDates = Object.keys(dailyLog).sort();
+    const totalStudied = allDates.reduce(
+      (sum, d) => sum + (dailyLog[d] || 0),
+      0,
+    );
+    const daysTracked = allDates.length;
+    const todayHours = dailyLog[today] || 0;
+    const progressPct = Math.min((totalStudied / targetHours) * 100, 100);
+    return { totalStudied, daysTracked, todayHours, progressPct };
+  }, [dailyLog, targetHours, today]);
 
   const statCards = [
     {
@@ -486,22 +459,25 @@ export default function Dashboard({ onNavigate }: Props) {
         ))}
       </div>
 
-      {/* Middle section: Targets + Schedule */}
+      {/* Middle section: Subject Targets + Study Journey */}
       <div className="grid md:grid-cols-2 gap-6 mb-6">
-        {/* Weekly Targets */}
+        {/* Subject-wise Chapter Progress */}
         <Card className="glass glass-hover border-0">
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2 text-foreground">
               <Target className="w-4 h-4 text-primary" />
-              <span>Weekly Targets</span>
+              <span>Subject Progress</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {SUBJECTS.map((sub) => {
-              const studied =
-                Math.round(((weeklyStudied[sub] || 0) / 3600) * 10) / 10;
-              const target = targets[sub] || 10;
-              const pct = Math.min((studied / target) * 100, 100);
+              const allChapters = [
+                ...Object.entries(chapters.class11?.[sub] || {}),
+                ...Object.entries(chapters.class12?.[sub] || {}),
+              ];
+              const total = allChapters.length;
+              const done = allChapters.filter(([, v]) => v.done).length;
+              const pct = total ? Math.round((done / total) * 100) : 0;
               return (
                 <div key={sub}>
                   <div className="flex justify-between items-center mb-1.5">
@@ -509,7 +485,7 @@ export default function Dashboard({ onNavigate }: Props) {
                       {sub}
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      {studied}h / {target}h
+                      {done}/{total} chapters done
                     </span>
                   </div>
                   <Progress
@@ -521,85 +497,101 @@ export default function Dashboard({ onNavigate }: Props) {
             })}
             <button
               type="button"
-              data-ocid="dashboard.timer.link"
-              onClick={() => onNavigate("timer")}
+              data-ocid="dashboard.syllabus.link"
+              onClick={() => onNavigate("syllabus")}
               className="text-xs text-primary hover:underline mt-1 transition-colors"
             >
-              Update targets in Timer →
+              Open Syllabus →
             </button>
           </CardContent>
         </Card>
 
-        {/* Today's Schedule */}
+        {/* Overall Study Journey */}
         <Card className="glass glass-hover border-0">
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2 text-foreground">
-              <Clock className="w-4 h-4 text-primary" />
-              <span>Today's Schedule</span>
+              <TrendingUp className="w-4 h-4 text-primary" />
+              <span>Study Journey</span>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            {todaySchedule.length === 0 ? (
+          <CardContent className="space-y-4">
+            <div>
+              <div className="flex justify-between mb-2">
+                <span className="text-sm text-muted-foreground">
+                  Total Hours
+                </span>
+                <span className="text-sm font-mono font-medium text-primary">
+                  {Math.round(studyStats.totalStudied * 10) / 10}h /{" "}
+                  {targetHours}h
+                </span>
+              </div>
+              <Progress
+                value={studyStats.progressPct}
+                className="h-3 bg-muted/50 progress-cyan"
+              />
+              <div className="flex justify-between mt-1">
+                <span className="text-[11px] text-muted-foreground">
+                  {Math.round(studyStats.progressPct)}% of target
+                </span>
+                <span className="text-[11px] text-muted-foreground">
+                  {studyStats.daysTracked} days tracked
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
               <div
-                data-ocid="dashboard.schedule.empty_state"
-                className="text-center py-6 text-muted-foreground text-sm"
+                className="rounded-lg p-3 text-center"
+                style={{
+                  background: "rgba(255,255,255,0.03)",
+                  border: "1px solid rgba(255,255,255,0.07)",
+                }}
               >
-                <CalendarDays className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                No schedule for today.
-                <br />
-                <button
-                  type="button"
-                  data-ocid="dashboard.schedule.link"
-                  onClick={() => onNavigate("schedule")}
-                  className="text-primary hover:underline mt-1 block mx-auto transition-colors"
-                >
-                  Add to schedule →
-                </button>
+                <div className="text-xl font-mono font-bold text-emerald-400">
+                  {studyStats.todayHours > 0
+                    ? `${studyStats.todayHours}h`
+                    : "—"}
+                </div>
+                <div className="text-[10px] text-muted-foreground mt-0.5">
+                  Today
+                </div>
               </div>
-            ) : (
-              <div className="space-y-2">
-                {todaySchedule.map((entry, i) => (
-                  <div
-                    key={entry.id}
-                    data-ocid={`dashboard.schedule.item.${i + 1}`}
-                    className="flex items-center gap-3 p-2.5 rounded-lg"
-                    style={{
-                      background: "rgba(255,255,255,0.04)",
-                      border: "1px solid rgba(255,255,255,0.06)",
-                    }}
-                  >
-                    <span className="text-xs font-mono text-muted-foreground w-16 shrink-0">
-                      {entry.time}
-                    </span>
-                    <Badge
-                      variant="outline"
-                      className={`text-xs shrink-0 border ${SUBJECT_BADGE[entry.subject] || SUBJECT_BADGE.Other}`}
-                    >
-                      {entry.subject}
-                    </Badge>
-                    <span className="text-sm text-foreground truncate">
-                      {entry.topic}
-                    </span>
-                    <span className="text-xs text-muted-foreground shrink-0 ml-auto">
-                      {entry.duration}m
-                    </span>
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  data-ocid="dashboard.schedule.viewall.link"
-                  onClick={() => onNavigate("schedule")}
-                  className="text-xs text-primary hover:underline transition-colors"
-                >
-                  View full schedule →
-                </button>
+              <div
+                className="rounded-lg p-3 text-center"
+                style={{
+                  background: "rgba(255,255,255,0.03)",
+                  border: "1px solid rgba(255,255,255,0.07)",
+                }}
+              >
+                <div className="text-xl font-mono font-bold text-purple-400">
+                  {studyStats.daysTracked > 0
+                    ? `${
+                        Math.round(
+                          (studyStats.totalStudied / studyStats.daysTracked) *
+                            10,
+                        ) / 10
+                      }h`
+                    : "—"}
+                </div>
+                <div className="text-[10px] text-muted-foreground mt-0.5">
+                  Avg/Day
+                </div>
               </div>
-            )}
+            </div>
+
+            <button
+              type="button"
+              data-ocid="dashboard.timer.link"
+              onClick={() => onNavigate("timer")}
+              className="text-xs text-primary hover:underline transition-colors"
+            >
+              Log today's hours in Timer →
+            </button>
           </CardContent>
         </Card>
       </div>
 
-      {/* Subject Progress */}
+      {/* Subject Progress detail */}
       <Card className="glass glass-hover border-0">
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2 text-foreground">

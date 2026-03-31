@@ -1,7 +1,6 @@
 import { Toaster } from "@/components/ui/sonner";
 import {
   BookOpen,
-  Calendar,
   CheckSquare,
   LayoutDashboard,
   Menu,
@@ -13,23 +12,15 @@ import { useState } from "react";
 import DailyTracker from "./pages/DailyTracker";
 import Dashboard from "./pages/Dashboard";
 import MissionJeet from "./pages/MissionJeet";
-import Schedule from "./pages/Schedule";
 import Syllabus from "./pages/Syllabus";
 import TimerPage from "./pages/Timer";
 
-type Page =
-  | "dashboard"
-  | "missionjeet"
-  | "syllabus"
-  | "schedule"
-  | "timer"
-  | "dailytracker";
+type Page = "dashboard" | "missionjeet" | "syllabus" | "timer" | "dailytracker";
 
 const NAV = [
   { id: "dashboard" as Page, label: "Dashboard", icon: LayoutDashboard },
   { id: "missionjeet" as Page, label: "Mission Jeet", icon: Rocket },
   { id: "syllabus" as Page, label: "Syllabus", icon: BookOpen },
-  { id: "schedule" as Page, label: "Schedule", icon: Calendar },
   { id: "timer" as Page, label: "Timer", icon: Timer },
   { id: "dailytracker" as Page, label: "Daily Tracker", icon: CheckSquare },
 ];
@@ -145,7 +136,6 @@ export default function App() {
         {page === "dashboard" && <Dashboard onNavigate={setPage} />}
         {page === "missionjeet" && <MissionJeet onNavigate={setPage} />}
         {page === "syllabus" && <Syllabus />}
-        {page === "schedule" && <Schedule />}
         {page === "timer" && <TimerPage />}
         {page === "dailytracker" && <DailyTracker />}
       </main>

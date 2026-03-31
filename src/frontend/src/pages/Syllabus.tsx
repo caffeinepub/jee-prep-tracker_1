@@ -52,6 +52,25 @@ const SUBJECT_HEADER: Record<
   },
 };
 
+// Glow styles for Physics, Chemistry, Maths subject titles
+const SUBJECT_TITLE_GLOW: Record<string, React.CSSProperties> = {
+  Physics: {
+    textShadow:
+      "0 0 10px rgba(0,212,224,0.9), 0 0 20px rgba(0,212,224,0.5), 0 0 40px rgba(0,212,224,0.25)",
+    filter: "drop-shadow(0 0 6px rgba(0,212,224,0.75))",
+  },
+  Chemistry: {
+    textShadow:
+      "0 0 10px rgba(34,197,94,0.9), 0 0 20px rgba(34,197,94,0.5), 0 0 40px rgba(34,197,94,0.25)",
+    filter: "drop-shadow(0 0 6px rgba(34,197,94,0.75))",
+  },
+  Maths: {
+    textShadow:
+      "0 0 10px rgba(168,85,247,0.9), 0 0 20px rgba(168,85,247,0.5), 0 0 40px rgba(168,85,247,0.25)",
+    filter: "drop-shadow(0 0 6px rgba(168,85,247,0.75))",
+  },
+};
+
 function isChapterFullyDone(data: ChapterData, mode: ChapterMode): boolean {
   if (mode === "jee") return data.done && data.notesDone && data.moduleDone;
   if (mode === "jeeChemistry")
@@ -291,6 +310,7 @@ function SubjectSection({
     text: "text-foreground",
     progress: "",
   };
+  const glowStyle = SUBJECT_TITLE_GLOW[subject] ?? {};
 
   return (
     <div className="mb-3">
@@ -313,7 +333,10 @@ function SubjectSection({
           ) : (
             <ChevronRight className={`w-4 h-4 ${theme.text}`} />
           )}
-          <span className={`font-semibold font-display ${theme.text}`}>
+          <span
+            className={`font-semibold font-display text-base ${theme.text}`}
+            style={glowStyle}
+          >
             {subject}
           </span>
           <span className="text-xs text-muted-foreground">
@@ -875,12 +898,7 @@ export default function Syllabus() {
             <div className="grid md:grid-cols-1 gap-4">
               {SUBJECTS.map((sub) => (
                 <Card key={sub} className="glass border-0">
-                  <CardHeader className="pb-2 pt-4 px-4">
-                    <CardTitle className="text-xs text-muted-foreground font-medium uppercase tracking-widest">
-                      {sub}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="px-4 pb-4">
+                  <CardContent className="px-4 pb-4 pt-4">
                     <SubjectSection
                       subject={sub}
                       chapters={chapters[cls]?.[sub] || {}}
@@ -951,12 +969,7 @@ export default function Syllabus() {
                 <div className="grid md:grid-cols-1 gap-4">
                   {SCHOOL_SUBJECTS.map((sub) => (
                     <Card key={sub} className="glass border-0">
-                      <CardHeader className="pb-2 pt-4 px-4">
-                        <CardTitle className="text-xs text-muted-foreground font-medium uppercase tracking-widest">
-                          {sub}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="px-4 pb-4">
+                      <CardContent className="px-4 pb-4 pt-4">
                         <SubjectSection
                           subject={sub}
                           chapters={chapters[cls]?.[sub] || {}}

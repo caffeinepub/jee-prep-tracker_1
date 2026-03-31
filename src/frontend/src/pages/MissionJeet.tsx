@@ -18,7 +18,7 @@ import {
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import type { ClassMap } from "../types";
 
-type Page = "dashboard" | "syllabus" | "schedule" | "timer" | "missionjeet";
+type Page = "dashboard" | "syllabus" | "timer" | "missionjeet" | "dailytracker";
 
 interface Props {
   onNavigate: (page: Page) => void;
