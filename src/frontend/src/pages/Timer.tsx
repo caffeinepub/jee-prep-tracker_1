@@ -100,6 +100,14 @@ function sumHours(dates: string[], log: Record<string, number>): number {
   }, 0);
 }
 
+// Calculate prep day number (1-based) from start date to target date
+function calcPrepDay(prepStart: string, targetDate: string): number {
+  const start = new Date(`${prepStart}T00:00:00`);
+  const target = new Date(`${targetDate}T00:00:00`);
+  const diffMs = target.getTime() - start.getTime();
+  return Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
+}
+
 const MONTH_NAMES = [
   "Jan",
   "Feb",
@@ -130,6 +138,8 @@ const FULL_MONTH_NAMES = [
 ];
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
+const DEFAULT_PREP_START = "2026-04-06";
+
 export default function TimerPage() {
   // Raw storage — may contain old data from previous timer versions
   const [rawDailyLog, setDailyLog] = useLocalStorage<Record<string, number>>(
@@ -139,6 +149,10 @@ export default function TimerPage() {
   const [weeklyTarget, setWeeklyTarget] = useLocalStorage<number>(
     "jee_weekly_target",
     40,
+  );
+  const [prepStartDate, setPrepStartDate] = useLocalStorage<string>(
+    "jee_prep_start_date",
+    DEFAULT_PREP_START,
   );
 
   // Normalize: only keep YYYY-MM-DD keys with numeric values.
@@ -170,6 +184,19 @@ export default function TimerPage() {
       ? weeklyTarget
       : 40;
 
+  // Safe prepStartDate fallback
+  const safePrepStart =
+    typeof prepStartDate === "string" &&
+    /^\d{4}-\d{2}-\d{2}$/.test(prepStartDate)
+      ? prepStartDate
+      : DEFAULT_PREP_START;
+
+  // Default selected log date: today if >= prep start, else prep start
+  const defaultLogDate =
+    todayStr() >= safePrepStart ? todayStr() : safePrepStart;
+  const [selectedLogDate, setSelectedLogDate] =
+    useState<string>(defaultLogDate);
+
   const [elapsed, setElapsed] = useState(0);
   const [running, setRunning] = useState(false);
   const [onBreak, setOnBreak] = useState(false);
@@ -199,6 +226,7 @@ export default function TimerPage() {
   const handlePause = () => setRunning((r) => !r);
   const handleBreak = () => setOnBreak((b) => !b);
 
+  // Stop & Save always saves to TODAY (not selected date)
   const handleStop = () => {
     if (elapsed > 0) {
       const hrs = elapsed / 3600;
@@ -217,15 +245,21 @@ export default function TimerPage() {
     setElapsed(0);
   };
 
-  const handleLogToday = () => {
+  // Log for selected date
+  const handleLogDate = () => {
     const val = Number.parseFloat(todayInput);
     if (Number.isNaN(val) || val < 0) {
       toast.error("Please enter a valid number");
       return;
     }
-    const today = todayStr();
-    setDailyLog({ ...dailyLog, [today]: Math.round(val * 100) / 100 });
-    toast.success(`Logged ${formatHours(val)} for today!`);
+    setDailyLog({
+      ...dailyLog,
+      [selectedLogDate]: Math.round(val * 100) / 100,
+    });
+    const isToday = selectedLogDate === todayStr();
+    toast.success(
+      `Logged ${formatHours(val)} for ${isToday ? "today" : selectedLogDate}!`,
+    );
     setTodayInput("");
   };
 
@@ -241,7 +275,19 @@ export default function TimerPage() {
   const currentWeekDays = getWeekDays(currentWeekStart);
   const thisWeekHours = sumHours(currentWeekDays, dailyLog);
   const weekPct = Math.min((thisWeekHours / safeTarget) * 100, 100);
-  const todayLogged = dailyLog[today] || 0;
+
+  // Selected date hours
+  const selectedDateLogged = dailyLog[selectedLogDate] || 0;
+
+  // Prep Day computation
+  const prepDayDisplay = useMemo(() => {
+    if (today < safePrepStart) {
+      const daysUntil = calcPrepDay(today, safePrepStart) - 1;
+      return { label: `Starts in ${daysUntil}d`, sublabel: "Prep Day" };
+    }
+    const dayNum = calcPrepDay(safePrepStart, today);
+    return { label: `Day ${dayNum}`, sublabel: "Prep Day" };
+  }, [today, safePrepStart]);
 
   // This month
   const daysInCurrentMonth = new Date(
@@ -271,8 +317,10 @@ export default function TimerPage() {
   });
   const thisYearHours = yearMonths.reduce((sum, m) => sum + m.hours, 0);
 
-  // All-time
-  const allDates = Object.keys(dailyLog).sort();
+  // Full daily log: only show entries from prep start onwards
+  const allDates = Object.keys(dailyLog)
+    .filter((d) => d >= safePrepStart)
+    .sort();
   const daysTracked = allDates.length;
 
   const timerClass = onBreak
@@ -282,6 +330,12 @@ export default function TimerPage() {
       : "font-mono text-6xl font-bold tracking-tight text-foreground/80";
 
   const maxMonthHours = Math.max(...yearMonths.map((m) => m.hours), 1);
+
+  const dateInputStyle = {
+    border: "1px solid rgba(0,212,224,0.3)",
+    background: "rgba(0,0,0,0.3)",
+    colorScheme: "dark" as const,
+  };
 
   return (
     <div className="max-w-[1100px] mx-auto px-4 py-8">
@@ -294,7 +348,7 @@ export default function TimerPage() {
         </p>
       </div>
 
-      {/* Row 1: Live Timer + Log Today */}
+      {/* Row 1: Live Timer + Log Study Hours */}
       <div className="grid md:grid-cols-2 gap-6 mb-6">
         {/* Live Timer */}
         <Card className="glass glass-hover border-0">
@@ -388,14 +442,52 @@ export default function TimerPage() {
           </CardContent>
         </Card>
 
-        {/* Log Today + Weekly Target */}
+        {/* Log Study Hours + Settings */}
         <Card className="glass glass-hover border-0">
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-primary" /> Log Today's Hours
+              <TrendingUp className="w-4 h-4 text-primary" /> Log Study Hours
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
+            {/* Prep Start Date setting */}
+            <div
+              className="rounded-xl p-3 flex items-center justify-between"
+              style={{
+                background: "rgba(168,85,247,0.04)",
+                border: "1px solid rgba(168,85,247,0.18)",
+              }}
+            >
+              <div>
+                <span className="text-sm font-medium text-foreground">
+                  Prep Starts
+                </span>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Day 1 of your JEE journey
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  data-ocid="timer.prep.start.input"
+                  type="date"
+                  value={safePrepStart}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      setPrepStartDate(e.target.value);
+                      // Reset selected log date if it's before new start
+                      if (selectedLogDate < e.target.value) {
+                        const newDefault =
+                          today >= e.target.value ? today : e.target.value;
+                        setSelectedLogDate(newDefault);
+                      }
+                    }
+                  }}
+                  className="input-dark border rounded-md px-2 py-1 text-sm"
+                  style={dateInputStyle}
+                />
+              </div>
+            </div>
+
             {/* Weekly target */}
             <div
               className="rounded-xl p-3 flex items-center justify-between"
@@ -430,20 +522,44 @@ export default function TimerPage() {
               </div>
             </div>
 
-            {/* Today input */}
+            {/* Date picker + hours input */}
             <div>
               <p className="text-xs text-muted-foreground mb-2">
-                Date:{" "}
-                <span className="font-mono text-foreground/70">{today}</span>
-                {todayLogged > 0 && (
+                Select date to log:
+                {selectedDateLogged > 0 && (
                   <span
                     className="ml-2 font-semibold"
                     style={{ color: "rgba(0,212,224,0.9)" }}
                   >
-                    (Current: {formatHours(todayLogged)})
+                    (Current: {formatHours(selectedDateLogged)})
                   </span>
                 )}
               </p>
+              <div className="flex items-center gap-2 mb-3">
+                <input
+                  data-ocid="timer.log.date.input"
+                  type="date"
+                  value={selectedLogDate}
+                  min={safePrepStart}
+                  onChange={(e) => {
+                    if (e.target.value) setSelectedLogDate(e.target.value);
+                  }}
+                  className="input-dark border rounded-md px-2 py-1 text-sm"
+                  style={dateInputStyle}
+                />
+                {selectedLogDate === today && (
+                  <span
+                    className="text-[10px] px-1.5 py-0.5 rounded font-medium"
+                    style={{
+                      background: "rgba(0,212,224,0.15)",
+                      color: "rgba(0,212,224,0.9)",
+                      border: "1px solid rgba(0,212,224,0.25)",
+                    }}
+                  >
+                    today
+                  </span>
+                )}
+              </div>
               <div className="flex items-center gap-3">
                 <input
                   data-ocid="timer.today.hours.input"
@@ -459,12 +575,12 @@ export default function TimerPage() {
                     border: "1px solid rgba(0,212,224,0.3)",
                     boxShadow: "0 0 8px rgba(0,212,224,0.08)",
                   }}
-                  onKeyDown={(e) => e.key === "Enter" && handleLogToday()}
+                  onKeyDown={(e) => e.key === "Enter" && handleLogDate()}
                 />
                 <span className="text-sm text-muted-foreground">hours</span>
                 <Button
                   data-ocid="timer.log.today.primary_button"
-                  onClick={handleLogToday}
+                  onClick={handleLogDate}
                   className="px-5 font-medium text-primary-foreground"
                   style={{
                     background:
@@ -478,7 +594,7 @@ export default function TimerPage() {
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground mt-1.5">
-                Overwrites today's existing entry
+                Overwrites the selected date's entry
               </p>
             </div>
 
@@ -492,10 +608,12 @@ export default function TimerPage() {
                 }}
               >
                 <div className="text-lg font-mono font-bold text-primary">
-                  {todayLogged > 0 ? formatHours(todayLogged) : "—"}
+                  {selectedDateLogged > 0
+                    ? formatHours(selectedDateLogged)
+                    : "\u2014"}
                 </div>
                 <div className="text-[10px] text-muted-foreground mt-0.5">
-                  Today
+                  Selected
                 </div>
               </div>
               <div
@@ -519,11 +637,14 @@ export default function TimerPage() {
                   border: "1px solid rgba(255,255,255,0.07)",
                 }}
               >
-                <div className="text-lg font-mono font-bold text-purple-400">
-                  {daysTracked}
+                <div
+                  className="text-lg font-mono font-bold"
+                  style={{ color: "rgba(168,85,247,0.9)" }}
+                >
+                  {prepDayDisplay.label}
                 </div>
                 <div className="text-[10px] text-muted-foreground mt-0.5">
-                  Days Logged
+                  {prepDayDisplay.sublabel}
                 </div>
               </div>
             </div>
@@ -876,7 +997,7 @@ export default function TimerPage() {
                     >
                       {m.hours > 0
                         ? formatHours(Math.round(m.hours * 10) / 10)
-                        : "—"}
+                        : "\u2014"}
                     </span>
                   </div>
                 );
@@ -906,6 +1027,11 @@ export default function TimerPage() {
             <span className="text-xs font-normal text-muted-foreground ml-1">
               ({daysTracked} days logged)
             </span>
+            {safePrepStart && (
+              <span className="text-[10px] font-normal text-muted-foreground/60 ml-1">
+                from {safePrepStart}
+              </span>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -916,15 +1042,21 @@ export default function TimerPage() {
             >
               <Clock className="w-8 h-8 mx-auto mb-2 opacity-30" />
               <p className="text-sm">
-                No study hours logged yet. Start the timer or log today!
+                No study hours logged yet. Start the timer or log your hours
+                above!
+              </p>
+              <p className="text-xs text-muted-foreground/60 mt-1">
+                Prep starts {safePrepStart} — entries before that date are
+                hidden.
               </p>
             </div>
           ) : (
             <div className="space-y-0 max-h-80 overflow-y-auto pr-1">
               {[...allDates].reverse().map((date, i) => {
                 const hrs = dailyLog[date] || 0;
-                const barPct = Math.min((hrs / 12) * 100, 100);
                 const isToday = date === today;
+                const barPct = Math.min((hrs / 12) * 100, 100);
+                const prepDay = calcPrepDay(safePrepStart, date);
                 return (
                   <div
                     key={date}
@@ -932,17 +1064,25 @@ export default function TimerPage() {
                     className="flex items-center gap-4 py-2.5"
                     style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}
                   >
-                    <span
-                      className="font-mono text-sm w-28 shrink-0"
-                      style={{
-                        color: isToday
-                          ? "rgba(0,212,224,0.9)"
-                          : "rgba(255,255,255,0.6)",
-                        fontWeight: isToday ? 600 : 400,
-                      }}
-                    >
-                      {isToday ? "Today" : date}
-                    </span>
+                    <div className="w-28 shrink-0">
+                      <span
+                        className="font-mono text-sm block"
+                        style={{
+                          color: isToday
+                            ? "rgba(0,212,224,0.9)"
+                            : "rgba(255,255,255,0.6)",
+                          fontWeight: isToday ? 600 : 400,
+                        }}
+                      >
+                        {isToday ? "Today" : date}
+                      </span>
+                      <span
+                        className="font-mono text-[10px]"
+                        style={{ color: "rgba(168,85,247,0.6)" }}
+                      >
+                        Day {prepDay}
+                      </span>
+                    </div>
                     <div
                       className="flex-1 relative h-3 rounded-full overflow-hidden"
                       style={{ background: "rgba(255,255,255,0.06)" }}
