@@ -527,8 +527,7 @@ function K3BSection() {
       className="mb-8 rounded-2xl overflow-hidden"
       style={{
         border: "1px solid rgba(251,191,36,0.3)",
-        boxShadow:
-          "0 0 40px rgba(251,191,36,0.35), 0 0 80px rgba(251,191,36,0.12), 0 4px 24px rgba(0,0,0,0.4)",
+        boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
         background:
           "linear-gradient(135deg, rgba(20,20,20,0.9) 0%, rgba(30,25,10,0.85) 100%)",
         backdropFilter: "blur(12px)",
@@ -552,7 +551,8 @@ function K3BSection() {
               background: "linear-gradient(90deg, #fbbf24, #f59e0b, #fcd34d)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
-              textShadow: "0 0 8px rgba(251,191,36,0.3)",
+              filter:
+                "drop-shadow(0 0 6px rgba(251,191,36,0.9)) drop-shadow(0 0 14px rgba(251,191,36,0.6))",
             }}
           >
             ⚡ K3B
