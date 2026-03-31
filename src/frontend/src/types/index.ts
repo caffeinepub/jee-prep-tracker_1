@@ -4,6 +4,7 @@ export interface ChapterData {
   moduleDone: boolean;
   ncertDone: boolean;
   revisions: number;
+  questionsSolved: number;
 }
 
 export type SubjectChapters = Record<string, ChapterData>;

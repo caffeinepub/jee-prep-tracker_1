@@ -52,17 +52,11 @@ const SUBJECT_HEADER: Record<
   },
 };
 
-// Glow styles for Physics, Chemistry, Maths subject titles
+// Glow removed from subject titles as per user feedback
 const SUBJECT_TITLE_GLOW: Record<string, React.CSSProperties> = {
-  Physics: {
-    textShadow: "0 0 8px rgba(0,212,224,0.45)",
-  },
-  Chemistry: {
-    textShadow: "0 0 8px rgba(34,197,94,0.45)",
-  },
-  Maths: {
-    textShadow: "0 0 8px rgba(168,85,247,0.45)",
-  },
+  Physics: {},
+  Chemistry: {},
+  Maths: {},
 };
 
 function isChapterFullyDone(data: ChapterData, mode: ChapterMode): boolean {
@@ -91,7 +85,11 @@ function ChapterRow({
   index: number;
   mode?: ChapterMode;
 }) {
-  const safeData = { ...data, ncertDone: data.ncertDone ?? false };
+  const safeData = {
+    ...data,
+    ncertDone: data.ncertDone ?? false,
+    questionsSolved: data.questionsSolved ?? 0,
+  };
   const isFullyDone = isChapterFullyDone(safeData, mode);
 
   const toggle = (field: keyof ChapterData) => {
@@ -205,6 +203,28 @@ function ChapterRow({
           />
         </div>
 
+        {(mode === "jee" || mode === "jeeChemistry") && (
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-muted-foreground">Q:</span>
+            <input
+              data-ocid={`syllabus.questions.input.${index}`}
+              type="number"
+              min={0}
+              max={9999}
+              value={safeData.questionsSolved}
+              onChange={(e) => {
+                const val = Math.max(
+                  0,
+                  Math.min(9999, Number.parseInt(e.target.value) || 0),
+                );
+                onChange({ ...safeData, questionsSolved: val });
+              }}
+              className="w-16 h-7 text-center text-sm rounded-md input-dark border"
+              title="Questions Solved"
+            />
+          </div>
+        )}
+
         {isFullyDone && (
           <Badge
             className="text-xs border"
@@ -297,7 +317,14 @@ function SubjectSection({
       )
     : 0;
   const fullyDone = chList.filter(([, v]) =>
-    isChapterFullyDone({ ...v, ncertDone: v.ncertDone ?? false }, mode),
+    isChapterFullyDone(
+      {
+        ...v,
+        ncertDone: v.ncertDone ?? false,
+        questionsSolved: v.questionsSolved ?? 0,
+      },
+      mode,
+    ),
   ).length;
   const theme = SUBJECT_HEADER[subject] || {
     border: "rgba(255,255,255,0.2)",
@@ -388,6 +415,7 @@ const DEFAULT_CHAPTER_DATA: ChapterData = {
   moduleDone: false,
   ncertDone: false,
   revisions: 0,
+  questionsSolved: 0,
 };
 
 interface K3BImage {
@@ -499,7 +527,8 @@ function K3BSection() {
       className="mb-8 rounded-2xl overflow-hidden"
       style={{
         border: "1px solid rgba(251,191,36,0.3)",
-        boxShadow: "0 0 30px rgba(251,191,36,0.08), 0 4px 24px rgba(0,0,0,0.4)",
+        boxShadow:
+          "0 0 40px rgba(251,191,36,0.35), 0 0 80px rgba(251,191,36,0.12), 0 4px 24px rgba(0,0,0,0.4)",
         background:
           "linear-gradient(135deg, rgba(20,20,20,0.9) 0%, rgba(30,25,10,0.85) 100%)",
         backdropFilter: "blur(12px)",
@@ -765,6 +794,7 @@ export default function Syllabus() {
   );
 
   // Migration: fill in any missing school11/school12 subjects or chapters
+  // Also migrate questionsSolved for JEE chapters
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentional mount-only migration
   useEffect(() => {
     const schoolDefaults: Record<string, Record<string, string[]>> = {
@@ -794,6 +824,26 @@ export default function Syllabus() {
       }
 
       merged[classKey] = newClass;
+    }
+
+    // Migrate questionsSolved for JEE chapters
+    for (const classKey of ["class11", "class12"]) {
+      const existingClass = merged[classKey] ?? {};
+      const classData = existingClass as Record<
+        string,
+        Record<string, ChapterData>
+      >;
+      for (const [, subj] of Object.entries(classData)) {
+        for (const [ch, chData] of Object.entries(subj)) {
+          if (chData.questionsSolved === undefined) {
+            subj[ch] = {
+              ...chData,
+              questionsSolved: 0,
+            };
+            needsUpdate = true;
+          }
+        }
+      }
     }
 
     if (needsUpdate) {

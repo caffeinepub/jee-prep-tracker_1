@@ -438,6 +438,7 @@ export function buildInitialChapterData(): ClassMap {
           moduleDone: false,
           ncertDone: false,
           revisions: 0,
+          questionsSolved: 0,
         };
       }
     }

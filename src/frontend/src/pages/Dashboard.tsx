@@ -283,6 +283,25 @@ function getDailyQuote() {
   return MOTIVATIONAL_QUOTES[dayOfYear % MOTIVATIONAL_QUOTES.length];
 }
 
+function getWeekStart(dateStr: string): string {
+  const d = new Date(`${dateStr}T12:00:00`);
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  return d.toISOString().split("T")[0];
+}
+
+function getWeekDays(weekStartStr: string): string[] {
+  const days: string[] = [];
+  const start = new Date(`${weekStartStr}T12:00:00`);
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    days.push(d.toISOString().split("T")[0]);
+  }
+  return days;
+}
+
 function CompactQuoteCard() {
   const { quote, author } = getDailyQuote();
 
@@ -292,7 +311,8 @@ function CompactQuoteCard() {
         className="max-w-xs rounded-xl px-3 py-2.5 shrink-0"
         style={{
           border: "1px solid rgba(251,191,36,0.4)",
-          boxShadow: "0 0 12px rgba(251,191,36,0.2), 0 2px 8px rgba(0,0,0,0.5)",
+          boxShadow:
+            "0 0 24px rgba(251,191,36,0.45), 0 0 8px rgba(251,191,36,0.3), 0 2px 8px rgba(0,0,0,0.5)",
           background:
             "linear-gradient(135deg, rgba(20,20,20,0.95) 0%, rgba(40,30,5,0.92) 100%)",
           backdropFilter: "blur(16px)",
@@ -336,7 +356,7 @@ export default function Dashboard({ onNavigate }: Props) {
     "jee_daily_log",
     {},
   );
-  const [targetHours] = useLocalStorage<number>("jee_overall_target", 3000);
+  const [weeklyTarget] = useLocalStorage<number>("jee_weekly_target", 40);
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -358,7 +378,7 @@ export default function Dashboard({ onNavigate }: Props) {
     return { totalChapters, doneChapters, notesDone, moduleDone };
   }, [chapters]);
 
-  // Overall study stats
+  // Weekly study stats
   const studyStats = useMemo(() => {
     const allDates = Object.keys(dailyLog).sort();
     const totalStudied = allDates.reduce(
@@ -367,9 +387,24 @@ export default function Dashboard({ onNavigate }: Props) {
     );
     const daysTracked = allDates.length;
     const todayHours = dailyLog[today] || 0;
-    const progressPct = Math.min((totalStudied / targetHours) * 100, 100);
-    return { totalStudied, daysTracked, todayHours, progressPct };
-  }, [dailyLog, targetHours, today]);
+
+    // This week
+    const weekStart = getWeekStart(today);
+    const weekDays = getWeekDays(weekStart);
+    const thisWeekHours = weekDays.reduce(
+      (sum, d) => sum + (dailyLog[d] || 0),
+      0,
+    );
+    const weekProgressPct = Math.min((thisWeekHours / weeklyTarget) * 100, 100);
+
+    return {
+      totalStudied,
+      daysTracked,
+      todayHours,
+      thisWeekHours,
+      weekProgressPct,
+    };
+  }, [dailyLog, weeklyTarget, today]);
 
   const statCards = [
     {
@@ -498,7 +533,7 @@ export default function Dashboard({ onNavigate }: Props) {
           </CardContent>
         </Card>
 
-        {/* Overall Study Journey */}
+        {/* Weekly Study Journey */}
         <Card className="glass glass-hover border-0">
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2 text-foreground">
@@ -509,21 +544,19 @@ export default function Dashboard({ onNavigate }: Props) {
           <CardContent className="space-y-4">
             <div>
               <div className="flex justify-between mb-2">
-                <span className="text-sm text-muted-foreground">
-                  Total Hours
-                </span>
+                <span className="text-sm text-muted-foreground">This Week</span>
                 <span className="text-sm font-mono font-medium text-primary">
-                  {Math.round(studyStats.totalStudied * 10) / 10}h /{" "}
-                  {targetHours}h
+                  {Math.round(studyStats.thisWeekHours * 10) / 10}h /{" "}
+                  {weeklyTarget}h
                 </span>
               </div>
               <Progress
-                value={studyStats.progressPct}
+                value={studyStats.weekProgressPct}
                 className="h-3 bg-muted/50 progress-cyan"
               />
               <div className="flex justify-between mt-1">
                 <span className="text-[11px] text-muted-foreground">
-                  {Math.round(studyStats.progressPct)}% of target
+                  {Math.round(studyStats.weekProgressPct)}% of weekly target
                 </span>
                 <span className="text-[11px] text-muted-foreground">
                   {studyStats.daysTracked} days tracked
@@ -556,17 +589,10 @@ export default function Dashboard({ onNavigate }: Props) {
                 }}
               >
                 <div className="text-xl font-mono font-bold text-purple-400">
-                  {studyStats.daysTracked > 0
-                    ? `${
-                        Math.round(
-                          (studyStats.totalStudied / studyStats.daysTracked) *
-                            10,
-                        ) / 10
-                      }h`
-                    : "—"}
+                  {Math.round(studyStats.thisWeekHours * 10) / 10}h
                 </div>
                 <div className="text-[10px] text-muted-foreground mt-0.5">
-                  Avg/Day
+                  This Week
                 </div>
               </div>
             </div>
@@ -639,6 +665,12 @@ export default function Dashboard({ onNavigate }: Props) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Footer clock */}
+      <div className="mt-4 flex items-center gap-1.5 text-xs text-muted-foreground/50">
+        <Clock className="w-3 h-3" />
+        <span>Last updated: {today}</span>
+      </div>
     </div>
   );
 }
