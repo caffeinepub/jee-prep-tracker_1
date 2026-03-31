@@ -6,6 +6,7 @@ import {
   Star,
   Target,
   Timer,
+  Trophy,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -80,6 +81,12 @@ const MILESTONES = [
   },
 ];
 
+function calcDays(target: Date, buffer = 0) {
+  const today = new Date();
+  const ms = target.getTime() - today.getTime();
+  return Math.max(0, Math.ceil(ms / (1000 * 60 * 60 * 24)) - buffer);
+}
+
 export default function MissionJeet({ onNavigate }: Props) {
   const [chapters] = useLocalStorage<ClassMap>(
     "jee_chapters",
@@ -111,12 +118,20 @@ export default function MissionJeet({ onNavigate }: Props) {
     return Math.round((done / total) * 100);
   }, [chapters]);
 
-  const jeeDate = new Date("2028-04-05");
-  const today = new Date();
-  const msLeft = jeeDate.getTime() - today.getTime();
-  const daysLeft = Math.max(0, Math.ceil(msLeft / (1000 * 60 * 60 * 24)) - 8);
-  const weeksLeft = Math.floor(daysLeft / 7);
+  // JEE exam dates (approximate, adjust when officially announced)
+  const jeeMainJanDate = new Date("2028-01-22"); // JEE Mains Session 1 (January)
+  const jeeMainAprDate = new Date("2028-04-05"); // JEE Mains Session 2 (April)
+  const jeeAdvancedDate = new Date("2028-05-26"); // JEE Advanced (May)
 
+  const daysToMainJan = calcDays(jeeMainJanDate);
+  const daysToMainApr = calcDays(jeeMainAprDate, 8);
+  const daysToAdvanced = calcDays(jeeAdvancedDate);
+
+  const weeksToMainJan = Math.floor(daysToMainJan / 7);
+  const weeksToMainApr = Math.floor(daysToMainApr / 7);
+  const weeksToAdvanced = Math.floor(daysToAdvanced / 7);
+
+  const today = new Date();
   const dayOfYear = Math.floor(
     (today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) /
       (1000 * 60 * 60 * 24),
@@ -132,6 +147,48 @@ export default function MissionJeet({ onNavigate }: Props) {
     setGoal(form);
     toast.success("Mission goal saved! You've got this! 🚀");
   }
+
+  const countdownCards = [
+    {
+      label: "JEE Mains — Session 1",
+      sublabel: "January Attempt",
+      date: "Jan 22, 2028",
+      days: daysToMainJan,
+      weeks: weeksToMainJan,
+      color: "#00d4e0",
+      glowColor: "rgba(0,212,224,",
+      badge: "SESSION 1",
+      badgeColor: "rgba(0,212,224,0.15)",
+      badgeBorder: "rgba(0,212,224,0.3)",
+      note: "First shot — go for it!",
+    },
+    {
+      label: "JEE Mains — Session 2",
+      sublabel: "April Attempt",
+      date: "Apr 5, 2028",
+      days: daysToMainApr,
+      weeks: weeksToMainApr,
+      color: "#a855f7",
+      glowColor: "rgba(168,85,247,",
+      badge: "SESSION 2",
+      badgeColor: "rgba(168,85,247,0.15)",
+      badgeBorder: "rgba(168,85,247,0.3)",
+      note: "Improve your score — 8-day buffer included",
+    },
+    {
+      label: "JEE Advanced",
+      sublabel: "The Final Battle",
+      date: "May 26, 2028",
+      days: daysToAdvanced,
+      weeks: weeksToAdvanced,
+      color: "#fbbf24",
+      glowColor: "rgba(251,191,36,",
+      badge: "IIT GATEWAY",
+      badgeColor: "rgba(251,191,36,0.15)",
+      badgeBorder: "rgba(251,191,36,0.3)",
+      note: "The ultimate challenge — IIT awaits!",
+    },
+  ];
 
   return (
     <div className="max-w-[900px] mx-auto px-4 py-8 space-y-8">
@@ -169,162 +226,198 @@ export default function MissionJeet({ onNavigate }: Props) {
           className="mt-8 h-px w-full"
           style={{
             background:
-              "linear-gradient(90deg, transparent, #00d4e0, #a855f7, #00d4e0, transparent)",
+              "linear-gradient(90deg, transparent, #00d4e0, #a855f7, #fbbf24, #00d4e0, transparent)",
             boxShadow: "0 0 12px rgba(0,212,224,0.5)",
           }}
         />
       </section>
 
-      {/* Countdown + Goal row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Countdown */}
-        <div
-          className="glass rounded-2xl p-6"
-          data-ocid="mission.countdown.card"
-          style={{ border: "1px solid rgba(0,212,224,0.2)" }}
-        >
-          <div className="flex items-center gap-2 mb-5">
-            <Clock className="w-5 h-5 text-primary" />
-            <h2 className="font-display font-bold text-base text-foreground/80 tracking-wider uppercase">
-              Countdown to JEE Main
-            </h2>
-          </div>
-          <div className="text-center py-4">
-            <div
-              className="font-display font-black text-7xl text-primary"
-              style={{
-                textShadow:
-                  "0 0 30px rgba(0,212,224,0.6), 0 0 60px rgba(0,212,224,0.3)",
-              }}
-            >
-              {daysLeft}
-            </div>
-            <div className="text-foreground/50 text-sm mt-2 uppercase tracking-widest">
-              Days to JEE Main
-            </div>
-            <div
-              className="mt-4 inline-block px-4 py-1.5 rounded-full text-sm font-semibold"
-              style={{
-                background: "rgba(168,85,247,0.15)",
-                border: "1px solid rgba(168,85,247,0.3)",
-                color: "#a855f7",
-              }}
-            >
-              {weeksLeft} weeks remaining
-            </div>
-          </div>
-          <div className="mt-4 text-center text-xs text-foreground/30">
-            Target: April 5, 2028 (−8 day buffer)
-          </div>
+      {/* 3 Countdown Cards */}
+      <div data-ocid="mission.countdowns.section">
+        <div className="flex items-center gap-2 mb-4">
+          <Clock className="w-5 h-5 text-primary" />
+          <h2 className="font-display font-bold text-base text-foreground/70 tracking-widest uppercase">
+            Exam Countdowns
+          </h2>
         </div>
-
-        {/* Goal Card */}
-        <div
-          className="glass rounded-2xl p-6"
-          data-ocid="mission.goal.card"
-          style={{ border: "1px solid rgba(168,85,247,0.2)" }}
-        >
-          <div className="flex items-center gap-2 mb-5">
-            <Target className="w-5 h-5" style={{ color: "#a855f7" }} />
-            <h2 className="font-display font-bold text-base text-foreground/80 tracking-wider uppercase">
-              My Dream Goal
-            </h2>
-          </div>
-          <div className="space-y-3">
-            <div>
-              <label
-                htmlFor="goal-rank"
-                className="text-xs text-foreground/50 uppercase tracking-wider mb-1 block"
-              >
-                Target Rank
-              </label>
-              <input
-                id="goal-rank"
-                type="number"
-                data-ocid="mission.goal.rank.input"
-                value={form.targetRank}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, targetRank: e.target.value }))
-                }
-                placeholder="e.g. 500"
-                className="w-full bg-white/5 border border-primary/20 rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-foreground/30 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-colors"
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="goal-college"
-                className="text-xs text-foreground/50 uppercase tracking-wider mb-1 block"
-              >
-                Dream College
-              </label>
-              <input
-                id="goal-college"
-                type="text"
-                data-ocid="mission.goal.college.input"
-                value={form.dreamCollege}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, dreamCollege: e.target.value }))
-                }
-                placeholder="e.g. IIT Bombay"
-                className="w-full bg-white/5 border border-primary/20 rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-foreground/30 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-colors"
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="goal-branch"
-                className="text-xs text-foreground/50 uppercase tracking-wider mb-1 block"
-              >
-                Dream Branch
-              </label>
-              <input
-                id="goal-branch"
-                type="text"
-                data-ocid="mission.goal.branch.input"
-                value={form.dreamBranch}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, dreamBranch: e.target.value }))
-                }
-                placeholder="e.g. Computer Science"
-                className="w-full bg-white/5 border border-primary/20 rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-foreground/30 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-colors"
-              />
-            </div>
-            <button
-              type="button"
-              data-ocid="mission.goal.save.button"
-              onClick={saveGoal}
-              className="w-full mt-2 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200"
-              style={{
-                background:
-                  "linear-gradient(135deg, rgba(168,85,247,0.3), rgba(0,212,224,0.2))",
-                border: "1px solid rgba(168,85,247,0.4)",
-                color: "#a855f7",
-                boxShadow: "0 0 20px rgba(168,85,247,0.15)",
-              }}
-            >
-              Save My Goal 🎯
-            </button>
-          </div>
-          {goal.dreamCollege && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {countdownCards.map((c, idx) => (
             <div
-              className="mt-4 p-3 rounded-lg text-center text-sm"
+              key={c.label}
+              className="glass rounded-2xl p-5 flex flex-col items-center text-center"
+              data-ocid={`mission.countdown.${idx + 1}`}
               style={{
-                background: "rgba(168,85,247,0.08)",
-                border: "1px solid rgba(168,85,247,0.15)",
+                border: `1px solid ${c.glowColor}0.25)`,
+                boxShadow: `0 0 24px ${c.glowColor}0.12)`,
               }}
             >
-              <span className="text-foreground/50">Your goal: </span>
-              <span style={{ color: "#a855f7" }} className="font-semibold">
-                {goal.dreamCollege} – {goal.dreamBranch}
+              {/* Badge */}
+              <span
+                className="text-xs font-bold px-2.5 py-1 rounded-full tracking-widest mb-3"
+                style={{
+                  background: c.badgeColor,
+                  border: `1px solid ${c.badgeBorder}`,
+                  color: c.color,
+                }}
+              >
+                {c.badge}
               </span>
-              {goal.targetRank && (
-                <span className="text-foreground/50">
-                  {" "}
-                  (Rank {goal.targetRank})
-                </span>
-              )}
+
+              {/* Title */}
+              <div className="font-display font-bold text-sm text-foreground/80 mb-0.5">
+                {c.label}
+              </div>
+              <div className="text-xs text-foreground/40 mb-4">
+                {c.sublabel}
+              </div>
+
+              {/* Days */}
+              <div
+                className="font-display font-black text-6xl leading-none mb-1"
+                style={{
+                  color: c.color,
+                  textShadow: `0 0 30px ${c.glowColor}0.7), 0 0 60px ${c.glowColor}0.3)`,
+                }}
+              >
+                {c.days}
+              </div>
+              <div className="text-xs text-foreground/40 uppercase tracking-widest mb-3">
+                days left
+              </div>
+
+              {/* Weeks pill */}
+              <div
+                className="px-3 py-1 rounded-full text-xs font-semibold mb-3"
+                style={{
+                  background: c.badgeColor,
+                  border: `1px solid ${c.badgeBorder}`,
+                  color: c.color,
+                }}
+              >
+                {c.weeks} weeks remaining
+              </div>
+
+              {/* Date + note */}
+              <div className="text-xs text-foreground/30 mt-auto">
+                Target: {c.date}
+              </div>
+              <div
+                className="text-xs mt-1 italic"
+                style={{ color: `${c.color}99` }}
+              >
+                {c.note}
+              </div>
             </div>
-          )}
+          ))}
         </div>
+      </div>
+
+      {/* Goal Card */}
+      <div
+        className="glass rounded-2xl p-6"
+        data-ocid="mission.goal.card"
+        style={{ border: "1px solid rgba(168,85,247,0.2)" }}
+      >
+        <div className="flex items-center gap-2 mb-5">
+          <Target className="w-5 h-5" style={{ color: "#a855f7" }} />
+          <h2 className="font-display font-bold text-base text-foreground/80 tracking-wider uppercase">
+            My Dream Goal
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div>
+            <label
+              htmlFor="goal-rank"
+              className="text-xs text-foreground/50 uppercase tracking-wider mb-1 block"
+            >
+              Target Rank
+            </label>
+            <input
+              id="goal-rank"
+              type="number"
+              data-ocid="mission.goal.rank.input"
+              value={form.targetRank}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, targetRank: e.target.value }))
+              }
+              placeholder="e.g. 500"
+              className="w-full bg-white/5 border border-primary/20 rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-foreground/30 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-colors"
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="goal-college"
+              className="text-xs text-foreground/50 uppercase tracking-wider mb-1 block"
+            >
+              Dream College
+            </label>
+            <input
+              id="goal-college"
+              type="text"
+              data-ocid="mission.goal.college.input"
+              value={form.dreamCollege}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, dreamCollege: e.target.value }))
+              }
+              placeholder="e.g. IIT Bombay"
+              className="w-full bg-white/5 border border-primary/20 rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-foreground/30 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-colors"
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="goal-branch"
+              className="text-xs text-foreground/50 uppercase tracking-wider mb-1 block"
+            >
+              Dream Branch
+            </label>
+            <input
+              id="goal-branch"
+              type="text"
+              data-ocid="mission.goal.branch.input"
+              value={form.dreamBranch}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, dreamBranch: e.target.value }))
+              }
+              placeholder="e.g. Computer Science"
+              className="w-full bg-white/5 border border-primary/20 rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-foreground/30 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-colors"
+            />
+          </div>
+        </div>
+        <button
+          type="button"
+          data-ocid="mission.goal.save.button"
+          onClick={saveGoal}
+          className="mt-4 w-full md:w-auto px-6 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200"
+          style={{
+            background:
+              "linear-gradient(135deg, rgba(168,85,247,0.3), rgba(0,212,224,0.2))",
+            border: "1px solid rgba(168,85,247,0.4)",
+            color: "#a855f7",
+            boxShadow: "0 0 20px rgba(168,85,247,0.15)",
+          }}
+        >
+          Save My Goal 🎯
+        </button>
+        {goal.dreamCollege && (
+          <div
+            className="mt-4 p-3 rounded-lg text-center text-sm"
+            style={{
+              background: "rgba(168,85,247,0.08)",
+              border: "1px solid rgba(168,85,247,0.15)",
+            }}
+          >
+            <span className="text-foreground/50">Your goal: </span>
+            <span style={{ color: "#a855f7" }} className="font-semibold">
+              {goal.dreamCollege} – {goal.dreamBranch}
+            </span>
+            {goal.targetRank && (
+              <span className="text-foreground/50">
+                {" "}
+                (Rank {goal.targetRank})
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Milestones */}
@@ -508,6 +601,22 @@ export default function MissionJeet({ onNavigate }: Props) {
         >
           <Timer className="w-5 h-5" />
           Track Timer →
+        </button>
+        <button
+          type="button"
+          data-ocid="mission.advanced.button"
+          onClick={() => onNavigate("dashboard")}
+          className="flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl font-bold text-base transition-all duration-200 hover:scale-[1.02]"
+          style={{
+            background:
+              "linear-gradient(135deg, rgba(251,191,36,0.2), rgba(251,191,36,0.05))",
+            border: "1px solid rgba(251,191,36,0.3)",
+            color: "#fbbf24",
+            boxShadow: "0 0 30px rgba(251,191,36,0.15)",
+          }}
+        >
+          <Trophy className="w-5 h-5" />
+          Dashboard →
         </button>
       </div>
     </div>

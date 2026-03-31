@@ -57,232 +57,233 @@ const STAT_ICON_COLORS = [
 const MOTIVATIONAL_QUOTES = [
   {
     quote:
-      "When something is important enough, you do it even if the odds are not in your favor.",
-    author: "Elon Musk",
-  },
-  {
-    quote:
-      "I think it's very important to have a feedback loop, where you're constantly thinking about what you've done and how you could be doing it better.",
-    author: "Elon Musk",
-  },
-  {
-    quote:
-      "Persistence is very important. You should not give up unless you are forced to give up.",
-    author: "Elon Musk",
-  },
-  {
-    quote:
-      "Work like hell. I mean you just have to put in 80 to 100 hour weeks every week.",
-    author: "Elon Musk",
-  },
-  {
-    quote:
-      "The first step is to establish that something is possible; then probability will occur.",
-    author: "Elon Musk",
-  },
-  {
-    quote:
-      "I wake up every morning and I think — how can I work harder today than yesterday?",
-    author: "Cristiano Ronaldo",
-  },
-  {
-    quote:
-      "Talent without working hard is nothing. Success is not a gift, you have to earn it.",
-    author: "Cristiano Ronaldo",
-  },
-  {
-    quote:
-      "Your love for what you do and willingness to push yourself where others aren't willing to go is what will make you great.",
-    author: "Cristiano Ronaldo",
-  },
-  {
-    quote:
-      "I am not finished yet. There is still so much more I want to achieve.",
-    author: "Cristiano Ronaldo",
-  },
-  {
-    quote: "Hard work beats talent when talent doesn't work hard.",
-    author: "Cristiano Ronaldo",
-  },
-  {
-    quote: "I have self-doubt. I have insecurity. But I don't let it stop me.",
+      "You didn't come this far to only come this far. Keep going — you are unstoppable.",
     author: "Kobe Bryant",
   },
   {
     quote:
-      "The most important thing is to try and inspire people so that they can be great in whatever they want to do.",
-    author: "Kobe Bryant",
-  },
-  {
-    quote: "If you're afraid to fail, then you're probably going to fail.",
+      "The pain you feel today is the strength you will feel tomorrow. Don't you dare stop now.",
     author: "Kobe Bryant",
   },
   {
     quote:
-      "Everything negative — pressure, challenges — is all an opportunity for me to rise.",
+      "Every single day is a chance to become better than the person you were yesterday. Take it.",
     author: "Kobe Bryant",
   },
   {
     quote:
-      "Once you know what failure feels like, determination chases success.",
+      "The fight is won or lost far away from witnesses — in the study room, in the silence, in the grind.",
     author: "Kobe Bryant",
   },
-  { quote: "Stay hungry, stay foolish.", author: "Steve Jobs" },
   {
     quote:
-      "The people who are crazy enough to think they can change the world are the ones who do.",
-    author: "Steve Jobs",
-  },
-  {
-    quote:
-      "Your time is limited, so don't waste it living someone else's life.",
-    author: "Steve Jobs",
-  },
-  {
-    quote: "Innovation distinguishes between a leader and a follower.",
-    author: "Steve Jobs",
+      "Rest if you must, but don't you quit. You are closer to your dream than you think.",
+    author: "Kobe Bryant",
   },
   {
     quote:
-      "I'm convinced that about half of what separates successful entrepreneurs from the non-successful ones is pure perseverance.",
-    author: "Steve Jobs",
+      "Suffer now in the dark so you can shine later in the light. No shortcuts. No excuses.",
+    author: "Cristiano Ronaldo",
   },
   {
     quote:
-      "Float like a butterfly, sting like a bee. The hands can't hit what the eyes can't see.",
-    author: "Muhammad Ali",
+      "Your only competition is who you were yesterday. Show up today and beat him.",
+    author: "Cristiano Ronaldo",
   },
   {
     quote:
-      "I hated every minute of training, but I said, 'Don't quit. Suffer now and live the rest of your life as a champion.'",
-    author: "Muhammad Ali",
+      "I wake up every morning and ask — how can I work harder today than I did yesterday? So should you.",
+    author: "Cristiano Ronaldo",
   },
   {
     quote:
-      "It's the repetition of affirmations that leads to belief. Once that belief becomes a deep conviction, things begin to happen.",
-    author: "Muhammad Ali",
+      "You are not behind. You are exactly where you need to be. Trust the process and keep going.",
+    author: "Cristiano Ronaldo",
   },
   {
     quote:
-      "Champions aren't made in gyms. Champions are made from something they have deep inside them — a desire, a dream, a vision.",
-    author: "Muhammad Ali",
+      "Don't wait for the perfect moment. Take this moment right now and make it perfect.",
+    author: "Cristiano Ronaldo",
   },
   {
     quote:
-      "Impossible is not a fact. It's an opinion. Impossible is potential. Impossible is temporary. Impossible is nothing.",
-    author: "Muhammad Ali",
+      "You are not going to be remembered for playing it safe. Go all in. Bet on yourself.",
+    author: "Elon Musk",
   },
   {
     quote:
-      "The mind is the limit. As long as the mind can envision the fact that you can do something, you can do it.",
-    author: "Arnold Schwarzenegger",
-  },
-  {
-    quote: "You can have results or excuses. Not both.",
-    author: "Arnold Schwarzenegger",
+      "Failure is not the end — it is data. Learn from it, adapt, and go again harder.",
+    author: "Elon Musk",
   },
   {
     quote:
-      "Strength does not come from winning. Your struggles develop your strengths.",
-    author: "Arnold Schwarzenegger",
-  },
-  {
-    quote: "You'll get more from being a peacemaker than a warrior.",
-    author: "Arnold Schwarzenegger",
-  },
-  {
-    quote: "The worst thing I can be is the same as everybody else.",
-    author: "Arnold Schwarzenegger",
+      "You have more potential locked inside you than you have ever used in your life. Unlock it today.",
+    author: "Elon Musk",
   },
   {
     quote:
-      "Dream, Dream, Dream. Dreams transform into thoughts and thoughts result in action.",
-    author: "APJ Abdul Kalam",
+      "Stop waiting for motivation. Discipline is what gets you there when motivation is long gone.",
+    author: "Elon Musk",
   },
   {
-    quote: "Excellence is a continuous process and not an accident.",
+    quote:
+      "The people who change their world are the ones who were told it was impossible — and did it anyway.",
+    author: "Elon Musk",
+  },
+  {
+    quote:
+      "The day you plant the seed is not the day you eat the fruit. Be patient. Be consistent. Keep going.",
     author: "APJ Abdul Kalam",
   },
   {
     quote:
-      "All of us do not have equal talent. But all of us have an equal opportunity to develop our talents.",
-    author: "APJ Abdul Kalam",
-  },
-  {
-    quote: "You have to dream before your dreams can come true.",
+      "Your dream is valid. Now go build the version of yourself that is worthy of it.",
     author: "APJ Abdul Kalam",
   },
   {
     quote:
-      "Failure will never overtake me if my determination to succeed is strong enough.",
+      "One more page. One more problem. One more hour. That is how legends are built — slowly, then all at once.",
     author: "APJ Abdul Kalam",
   },
   {
-    quote: "Self-belief and hard work will always earn you success.",
+    quote:
+      "Stars shine the brightest in the darkest nights. This struggle you are going through is making you shine.",
+    author: "APJ Abdul Kalam",
+  },
+  {
+    quote:
+      "You were born to do something extraordinary. Don't let fear or laziness steal that destiny from you.",
+    author: "APJ Abdul Kalam",
+  },
+  {
+    quote:
+      "I hated every minute of training. But I said — don't quit. Suffer now and live the rest of your life as a champion.",
+    author: "Muhammad Ali",
+  },
+  {
+    quote:
+      "Don't count the days. Make the days count. Every single one of them.",
+    author: "Muhammad Ali",
+  },
+  {
+    quote:
+      "Impossible is not a fact. It is an opinion. Impossible is temporary. Impossible is nothing.",
+    author: "Muhammad Ali",
+  },
+  {
+    quote:
+      "He who is not courageous enough to take risks will accomplish nothing in life. Take the risk.",
+    author: "Muhammad Ali",
+  },
+  {
+    quote:
+      "Champions are made from something deep inside them — a hunger, a dream, an unbreakable will. Find yours.",
+    author: "Muhammad Ali",
+  },
+  {
+    quote:
+      "When you feel like quitting, think about why you started. That reason is still waiting for you.",
     author: "Virat Kohli",
   },
   {
     quote:
-      "If you don't back yourself in life, nobody else will. Believe in yourself.",
+      "You don't need anyone's permission to be great. Give that permission to yourself — right now.",
     author: "Virat Kohli",
   },
   {
     quote:
-      "I don't just want to be there, I want to be the best version of myself every time.",
-    author: "Virat Kohli",
-  },
-  {
-    quote: "Limits exist only in the mind. If you believe you can, you will.",
+      "Stop doubting yourself. The world will be convinced the moment you are.",
     author: "Virat Kohli",
   },
   {
     quote:
-      "Talent is God given. Be humble. Fame is man-given. Be grateful. Conceit is self-given. Be careful.",
-    author: "John Wooden",
+      "Success is not given. It is earned — in the books, in the practice, in the grind, every single day.",
+    author: "Virat Kohli",
   },
   {
     quote:
-      "I've missed more than 9000 shots in my career. I've lost almost 300 games. I've failed over and over and that is why I succeed.",
+      "Be so relentlessly good that the world has no choice but to notice you.",
+    author: "Virat Kohli",
+  },
+  {
+    quote:
+      "I've failed over and over in my life. That is exactly why I succeed. Failure is the path, not the stop.",
     author: "Michael Jordan",
   },
   {
     quote:
-      "Some people want it to happen, some wish it would happen, others make it happen.",
+      "The ceiling you see right now is just the floor of the next level. Break through it.",
     author: "Michael Jordan",
   },
   {
     quote:
-      "Obstacles are necessary for success because in selling, as in all careers of importance, victory comes only after many struggles and countless defeats.",
-    author: "Og Mandino",
+      "Talent will get you in the room. Relentless, obsessive work will make you the one who owns it.",
+    author: "Michael Jordan",
   },
   {
     quote:
-      "Risk more than others think is safe. Dream more than others think is practical.",
-    author: "Howard Schultz",
+      "Your mind gives up long before your body does. Train your mind first, everything else follows.",
+    author: "Michael Jordan",
   },
   {
     quote:
-      "It's not about how bad you want it. It's about how hard you're willing to work for it.",
+      "The people who are crazy enough to think they can change the world are the ones who do. Be that person.",
+    author: "Steve Jobs",
+  },
+  {
+    quote:
+      "Your time here is limited. Don't waste a single day living someone else's version of your life.",
+    author: "Steve Jobs",
+  },
+  {
+    quote:
+      "Every morning you have two choices: keep sleeping with your dreams, or wake up and go build them.",
+    author: "Arnold Schwarzenegger",
+  },
+  {
+    quote:
+      "The last few reps are the ones that build strength. The last hour of study is where breakthroughs happen.",
+    author: "Arnold Schwarzenegger",
+  },
+  {
+    quote:
+      "No matter what — outwork everyone. That is the one thing you have complete control over.",
+    author: "Arnold Schwarzenegger",
+  },
+  {
+    quote:
+      "Your future self is watching you right now through your memories. Make him proud today.",
+    author: "Arnold Schwarzenegger",
+  },
+  {
+    quote:
+      "You are one decision away from a completely different life. Make that decision today.",
     author: "Jeff Bezos",
   },
-  { quote: "Work hard, have fun, make history.", author: "Jeff Bezos" },
   {
-    quote: "Rule No.1: Never lose money. Rule No.2: Never forget rule No.1.",
+    quote:
+      "The regret of not trying will always be heavier than the regret of trying and failing. Always.",
+    author: "Jeff Bezos",
+  },
+  {
+    quote:
+      "The best investment you will ever make is in yourself. Your mind is your greatest asset — sharpen it.",
     author: "Warren Buffett",
   },
   {
     quote:
-      "The secret of getting ahead is getting started. The secret of getting started is breaking your complex overwhelming tasks into small manageable ones.",
-    author: "Mark Twain",
-  },
-  {
-    quote: "An investment in knowledge pays the best interest.",
+      "Today's preparation is tomorrow's achievement. What you do in the next hour matters more than you know.",
     author: "Benjamin Franklin",
   },
   {
     quote:
-      "Genius is one percent inspiration and ninety-nine percent perspiration.",
+      "Genius is 1% inspiration and 99% showing up when you don't feel like it. Show up today.",
     author: "Thomas Edison",
+  },
+  {
+    quote:
+      "The secret to getting ahead is getting started — not tomorrow, not later. Right now, this very moment.",
+    author: "Mark Twain",
   },
 ];
 
@@ -318,7 +319,7 @@ function CompactQuoteCard() {
         }}
       >
         <p
-          className="text-xs leading-snug line-clamp-2"
+          className="text-xs leading-snug line-clamp-3"
           style={{ color: "rgba(255,245,210,0.88)" }}
         >
           <Zap
