@@ -9,6 +9,7 @@ import {
   X,
 } from "lucide-react";
 import { useState } from "react";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import DailyTracker from "./pages/DailyTracker";
 import Dashboard from "./pages/Dashboard";
 import MissionJeet from "./pages/MissionJeet";
@@ -136,7 +137,11 @@ export default function App() {
         {page === "dashboard" && <Dashboard onNavigate={setPage} />}
         {page === "missionjeet" && <MissionJeet onNavigate={setPage} />}
         {page === "syllabus" && <Syllabus />}
-        {page === "timer" && <TimerPage />}
+        {page === "timer" && (
+          <ErrorBoundary>
+            <TimerPage />
+          </ErrorBoundary>
+        )}
         {page === "dailytracker" && <DailyTracker />}
       </main>
 

@@ -38,57 +38,83 @@ function formatHours(h: unknown) {
 }
 
 // Get Monday of the week containing the given date
+// Guard: if date is invalid, fall back to today
 function getWeekStart(dateStr: string): string {
-  const d = new Date(`${dateStr}T12:00:00`);
-  const day = d.getDay(); // 0=Sun
-  const diff = day === 0 ? -6 : 1 - day;
-  d.setDate(d.getDate() + diff);
-  return d.toISOString().split("T")[0];
+  try {
+    const d = new Date(`${dateStr}T12:00:00`);
+    if (Number.isNaN(d.getTime())) return getWeekStart(todayStr());
+    const day = d.getDay(); // 0=Sun
+    const diff = day === 0 ? -6 : 1 - day;
+    d.setDate(d.getDate() + diff);
+    const result = d.toISOString().split("T")[0];
+    return result;
+  } catch {
+    return getWeekStart(todayStr());
+  }
 }
 
 // Get all 7 days Mon–Sun of a week
+// Guard: if weekStartStr is invalid, use today's week
 function getWeekDays(weekStartStr: string): string[] {
-  const days: string[] = [];
-  const start = new Date(`${weekStartStr}T12:00:00`);
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(start);
-    d.setDate(start.getDate() + i);
-    days.push(d.toISOString().split("T")[0]);
+  try {
+    const start = new Date(`${weekStartStr}T12:00:00`);
+    if (Number.isNaN(start.getTime())) {
+      // Fallback: return 7 copies of today
+      const t = todayStr();
+      return Array(7).fill(t);
+    }
+    const days: string[] = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      days.push(d.toISOString().split("T")[0]);
+    }
+    return days;
+  } catch {
+    const t = todayStr();
+    return Array(7).fill(t);
   }
-  return days;
 }
 
 // "28 Mar – 3 Apr" style label
 function getWeekLabel(weekStartStr: string): string {
-  const start = new Date(`${weekStartStr}T12:00:00`);
-  const end = new Date(`${weekStartStr}T12:00:00`);
-  end.setDate(start.getDate() + 6);
-  const months = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
-  ];
-  return `${start.getDate()} ${months[start.getMonth()]} \u2013 ${end.getDate()} ${months[end.getMonth()]}`;
+  try {
+    const start = new Date(`${weekStartStr}T12:00:00`);
+    const end = new Date(`${weekStartStr}T12:00:00`);
+    end.setDate(start.getDate() + 6);
+    const months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+    return `${start.getDate()} ${months[start.getMonth()]} \u2013 ${end.getDate()} ${months[end.getMonth()]}`;
+  } catch {
+    return "";
+  }
 }
 
 // All week-starts that overlap with a calendar month
 function getWeeksInMonth(year: number, month: number): string[] {
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const seen = new Set<string>();
-  for (let d = 1; d <= daysInMonth; d++) {
-    const dateStr = `${year}-${pad(month + 1)}-${pad(d)}`;
-    seen.add(getWeekStart(dateStr));
+  try {
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const seen = new Set<string>();
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${year}-${pad(month + 1)}-${pad(d)}`;
+      seen.add(getWeekStart(dateStr));
+    }
+    return Array.from(seen).sort();
+  } catch {
+    return [];
   }
-  return Array.from(seen).sort();
 }
 
 // Safe: handles undefined/null log
@@ -101,11 +127,18 @@ function sumHours(dates: string[], log: Record<string, number>): number {
 }
 
 // Calculate prep day number (1-based) from start date to target date
+// Guard: if either date is invalid, return 1
 function calcPrepDay(prepStart: string, targetDate: string): number {
-  const start = new Date(`${prepStart}T00:00:00`);
-  const target = new Date(`${targetDate}T00:00:00`);
-  const diffMs = target.getTime() - start.getTime();
-  return Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
+  try {
+    const start = new Date(`${prepStart}T00:00:00`);
+    const target = new Date(`${targetDate}T00:00:00`);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(target.getTime()))
+      return 1;
+    const diffMs = target.getTime() - start.getTime();
+    return Math.max(1, Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1);
+  } catch {
+    return 1;
+  }
 }
 
 const MONTH_NAMES = [
@@ -156,24 +189,27 @@ export default function TimerPage() {
   );
 
   // Normalize: only keep YYYY-MM-DD keys with numeric values.
-  // This prevents crashes caused by data from old timer versions stored
-  // under the same localStorage key with a different structure.
+  // Wrapped in try/catch to guard against any unexpected localStorage corruption.
   const dailyLog = useMemo((): Record<string, number> => {
-    if (
-      !rawDailyLog ||
-      typeof rawDailyLog !== "object" ||
-      Array.isArray(rawDailyLog)
-    ) {
+    try {
+      if (
+        !rawDailyLog ||
+        typeof rawDailyLog !== "object" ||
+        Array.isArray(rawDailyLog)
+      ) {
+        return {};
+      }
+      return Object.fromEntries(
+        Object.entries(rawDailyLog).filter(
+          ([k, v]) =>
+            /^\d{4}-\d{2}-\d{2}$/.test(k) &&
+            typeof v === "number" &&
+            !Number.isNaN(v),
+        ),
+      );
+    } catch {
       return {};
     }
-    return Object.fromEntries(
-      Object.entries(rawDailyLog).filter(
-        ([k, v]) =>
-          /^\d{4}-\d{2}-\d{2}$/.test(k) &&
-          typeof v === "number" &&
-          !Number.isNaN(v),
-      ),
-    );
   }, [rawDailyLog]);
 
   // Safe weeklyTarget fallback
@@ -184,7 +220,7 @@ export default function TimerPage() {
       ? weeklyTarget
       : 40;
 
-  // Safe prepStartDate fallback
+  // Safe prepStartDate fallback — computed BEFORE defaultLogDate
   const safePrepStart =
     typeof prepStartDate === "string" &&
     /^\d{4}-\d{2}-\d{2}$/.test(prepStartDate)
@@ -279,14 +315,18 @@ export default function TimerPage() {
   // Selected date hours
   const selectedDateLogged = dailyLog[selectedLogDate] || 0;
 
-  // Prep Day computation
+  // Prep Day computation — wrapped in try/catch
   const prepDayDisplay = useMemo(() => {
-    if (today < safePrepStart) {
-      const daysUntil = calcPrepDay(today, safePrepStart) - 1;
-      return { label: `Starts in ${daysUntil}d`, sublabel: "Prep Day" };
+    try {
+      if (today < safePrepStart) {
+        const daysUntil = calcPrepDay(today, safePrepStart) - 1;
+        return { label: `Starts in ${daysUntil}d`, sublabel: "Prep Day" };
+      }
+      const dayNum = calcPrepDay(safePrepStart, today);
+      return { label: `Day ${dayNum}`, sublabel: "Prep Day" };
+    } catch {
+      return { label: "Day 1", sublabel: "Prep Day" };
     }
-    const dayNum = calcPrepDay(safePrepStart, today);
-    return { label: `Day ${dayNum}`, sublabel: "Prep Day" };
   }, [today, safePrepStart]);
 
   // This month
@@ -329,7 +369,11 @@ export default function TimerPage() {
       ? "font-mono text-6xl font-bold tracking-tight timer-glow text-primary animate-pulse-glow"
       : "font-mono text-6xl font-bold tracking-tight text-foreground/80";
 
-  const maxMonthHours = Math.max(...yearMonths.map((m) => m.hours), 1);
+  // Safe maxMonthHours: filter out NaN values, ensure minimum of 1 to avoid division by zero
+  const maxMonthHours = Math.max(
+    ...yearMonths.map((m) => m.hours).filter((h) => !Number.isNaN(h)),
+    1,
+  );
 
   const dateInputStyle = {
     border: "1px solid rgba(0,212,224,0.3)",
@@ -943,7 +987,12 @@ export default function TimerPage() {
             <div className="space-y-1.5">
               {yearMonths.map((m) => {
                 const isCurrent = m.key === currentMonthKey;
-                const barPct = (m.hours / maxMonthHours) * 100;
+                // Safe barPct: guard against NaN/Infinity from maxMonthHours being 0
+                const safeHours = Number.isNaN(m.hours) ? 0 : m.hours;
+                const barPct =
+                  maxMonthHours > 0
+                    ? Math.min((safeHours / maxMonthHours) * 100, 100)
+                    : 0;
                 return (
                   <div
                     key={m.key}
@@ -975,11 +1024,11 @@ export default function TimerPage() {
                           width: `${barPct}%`,
                           background: isCurrent
                             ? "linear-gradient(90deg, rgba(251,191,36,0.75), rgba(251,191,36,0.4))"
-                            : m.hours > 0
+                            : safeHours > 0
                               ? "linear-gradient(90deg, rgba(251,191,36,0.4), rgba(251,191,36,0.2))"
                               : "transparent",
                           boxShadow:
-                            isCurrent && m.hours > 0
+                            isCurrent && safeHours > 0
                               ? "0 0 8px rgba(251,191,36,0.3)"
                               : "none",
                         }}
@@ -990,13 +1039,13 @@ export default function TimerPage() {
                       style={{
                         color: isCurrent
                           ? "rgba(251,191,36,0.9)"
-                          : m.hours > 0
+                          : safeHours > 0
                             ? "rgba(255,255,255,0.6)"
                             : "rgba(255,255,255,0.2)",
                       }}
                     >
-                      {m.hours > 0
-                        ? formatHours(Math.round(m.hours * 10) / 10)
+                      {safeHours > 0
+                        ? formatHours(Math.round(safeHours * 10) / 10)
                         : "\u2014"}
                     </span>
                   </div>
