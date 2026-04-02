@@ -4,6 +4,7 @@ import { Progress } from "@/components/ui/progress";
 import {
   BookOpen,
   CheckCircle2,
+  ChevronRight,
   Clock,
   FileText,
   Layers,
@@ -11,7 +12,7 @@ import {
   TrendingUp,
   Zap,
 } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { SUBJECTS, buildInitialChapterData } from "../data/syllabusData";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import type { ClassMap } from "../types";
@@ -43,245 +44,482 @@ const STAT_ICON_COLORS = [
 ];
 
 const MOTIVATIONAL_QUOTES = [
+  // Rocky / Movie Quotes
+  { quote: "There is no tomorrow!", author: "Rocky Balboa (Rocky III)" },
   {
     quote:
-      "You didn't come this far to only come this far. Keep going — you are unstoppable.",
-    author: "Kobe Bryant",
+      "It ain't about how hard you hit. It's about how hard you can get hit and keep moving forward.",
+    author: "Rocky Balboa (Rocky Balboa)",
   },
   {
     quote:
-      "The pain you feel today is the strength you will feel tomorrow. Don't you dare stop now.",
-    author: "Kobe Bryant",
+      "Every second you spend in doubt is a second where someone else is outworking you.",
+    author: "Rocky Balboa (Rocky IV)",
   },
   {
     quote:
-      "Every single day is a chance to become better than the person you were yesterday. Take it.",
-    author: "Kobe Bryant",
+      "Going in one more round when you don't think you can — that's what makes all the difference in your life.",
+    author: "Rocky Balboa",
   },
   {
     quote:
-      "The fight is won or lost far away from witnesses — in the study room, in the silence, in the grind.",
-    author: "Kobe Bryant",
+      "You, me, or nobody is gonna hit as hard as life. But it ain't about how hard you hit. It's about how hard you can get hit and keep moving forward.",
+    author: "Rocky Balboa",
+  },
+  {
+    quote: "I must break you.",
+    author: "Ivan Drago (Rocky IV) — become unbreakable first",
   },
   {
     quote:
-      "Rest if you must, but don't you quit. You are closer to your dream than you think.",
-    author: "Kobe Bryant",
+      "To win the fight, you need to want it more than the other guy. Want it more.",
+    author: "Mickey Goldmill (Rocky)",
   },
   {
-    quote:
-      "Suffer now in the dark so you can shine later in the light. No shortcuts. No excuses.",
-    author: "Cristiano Ronaldo",
+    quote: "What are we waiting for? Get up, because Mickey loves ya.",
+    author: "Mickey Goldmill (Rocky)",
   },
+  // Elon Musk
   {
     quote:
-      "Your only competition is who you were yesterday. Show up today and beat him.",
-    author: "Cristiano Ronaldo",
-  },
-  {
-    quote:
-      "I wake up every morning and ask — how can I work harder today than I did yesterday? So should you.",
-    author: "Cristiano Ronaldo",
-  },
-  {
-    quote:
-      "You are not behind. You are exactly where you need to be. Trust the process and keep going.",
-    author: "Cristiano Ronaldo",
-  },
-  {
-    quote:
-      "Don't wait for the perfect moment. Take this moment right now and make it perfect.",
-    author: "Cristiano Ronaldo",
-  },
-  {
-    quote:
-      "You are not going to be remembered for playing it safe. Go all in. Bet on yourself.",
+      "When something is important enough, you do it even if the odds are not in your favour.",
     author: "Elon Musk",
   },
   {
     quote:
-      "Failure is not the end — it is data. Learn from it, adapt, and go again harder.",
+      "I don't ever give up. It's not possible. No — it's not possible. It's necessary.",
     author: "Elon Musk",
   },
   {
     quote:
-      "You have more potential locked inside you than you have ever used in your life. Unlock it today.",
+      "The first step is to establish that something is possible; then probability will occur.",
     author: "Elon Musk",
   },
   {
     quote:
-      "Stop waiting for motivation. Discipline is what gets you there when motivation is long gone.",
+      "Failure is an option here. If things are not failing, you are not innovating enough.",
     author: "Elon Musk",
   },
   {
     quote:
-      "The people who change their world are the ones who were told it was impossible — and did it anyway.",
+      "Work like hell. I mean you just have to put in 80 to 100 hour weeks every week.",
     author: "Elon Musk",
   },
   {
     quote:
-      "The day you plant the seed is not the day you eat the fruit. Be patient. Be consistent. Keep going.",
-    author: "APJ Abdul Kalam",
+      "If you get up in the morning and think the future is going to be better, it is a bright day. Otherwise, it's not.",
+    author: "Elon Musk",
   },
   {
     quote:
-      "Your dream is valid. Now go build the version of yourself that is worthy of it.",
-    author: "APJ Abdul Kalam",
+      "Persistence is very important. You should not give up unless you are forced to give up.",
+    author: "Elon Musk",
   },
   {
     quote:
-      "One more page. One more problem. One more hour. That is how legends are built — slowly, then all at once.",
-    author: "APJ Abdul Kalam",
+      "You shouldn't do things differently just because they're different. They need to be better.",
+    author: "Elon Musk",
+  },
+  // Interstellar / Sci-Fi
+  {
+    quote:
+      "Do not go gentle into that good night. Rage, rage against the dying of the light.",
+    author: "Dr. Brand (Interstellar)",
   },
   {
     quote:
-      "Stars shine the brightest in the darkest nights. This struggle you are going through is making you shine.",
-    author: "APJ Abdul Kalam",
+      "We used to look up at the sky and wonder at our place in the stars. Now we just look down and worry about our place in the dirt.",
+    author: "Cooper (Interstellar)",
+  },
+  {
+    quote: "Mankind was born on Earth. It was never meant to die here.",
+    author: "Cooper (Interstellar)",
+  },
+  // The Dark Knight / Batman
+  {
+    quote: "Why do we fall? So we can learn to pick ourselves up.",
+    author: "Alfred Pennyworth (Batman Begins)",
+  },
+  {
+    quote: "It's not who I am underneath, but what I do that defines me.",
+    author: "Bruce Wayne (Batman Begins)",
   },
   {
     quote:
-      "You were born to do something extraordinary. Don't let fear or laziness steal that destiny from you.",
-    author: "APJ Abdul Kalam",
+      "You either die a hero, or you live long enough to see yourself become the villain. Don't become the villain of your own story.",
+    author: "Harvey Dent (The Dark Knight)",
   },
   {
     quote:
-      "I hated every minute of training. But I said — don't quit. Suffer now and live the rest of your life as a champion.",
+      "Endure, Master Wayne. Take it. They'll hate you for it, but that's the point of Batman.",
+    author: "Alfred Pennyworth (The Dark Knight)",
+  },
+  // Pursuit of Happyness
+  {
+    quote:
+      "Don't ever let somebody tell you, you can't do something. Not even me.",
+    author: "Chris Gardner (The Pursuit of Happyness)",
+  },
+  {
+    quote: "You got a dream, you gotta protect it.",
+    author: "Chris Gardner (The Pursuit of Happyness)",
+  },
+  {
+    quote: "This part of my life, this little part, is called happiness.",
+    author: "Chris Gardner (The Pursuit of Happyness)",
+  },
+  // Good Will Hunting
+  {
+    quote:
+      "You're sitting on a winning lottery ticket and you're too scared to cash it in.",
+    author: "Sean Maguire (Good Will Hunting)",
+  },
+  {
+    quote:
+      "Most days I wish I never met you. But some days... some days I think it's the only good thing that happened to me.",
+    author: "Good Will Hunting — because one good reason is enough",
+  },
+  // Gladiator
+  {
+    quote: "What we do in life echoes in eternity.",
+    author: "Maximus (Gladiator)",
+  },
+  {
+    quote: "Strength and honour.",
+    author: "Maximus (Gladiator) — say it every morning",
+  },
+  // 3 Idiots / Indian
+  {
+    quote: "Chase excellence and success will follow, pants down.",
+    author: "Rancho (3 Idiots)",
+  },
+  {
+    quote: "All is well.",
+    author: "Rancho (3 Idiots) — say it when the pressure hits",
+  },
+  // Wolf of Wall Street
+  {
+    quote:
+      "The only thing standing between you and your goal is the story you keep telling yourself.",
+    author: "Jordan Belfort (Wolf of Wall Street)",
+  },
+  {
+    quote: "I'm not gonna die sober!",
+    author: "Jordan Belfort — replace sober with 'without trying'",
+  },
+  // Remember the Titans
+  {
+    quote: "Attitude reflects leadership. You lead your own life.",
+    author: "Herman Boone (Remember the Titans)",
+  },
+  {
+    quote: "Left side, strong side.",
+    author: "Remember the Titans — your mind is your strong side",
+  },
+  // Whiplash
+  {
+    quote:
+      "There are no two words in the English language more harmful than 'good job'.",
+    author: "Terence Fletcher (Whiplash)",
+  },
+  {
+    quote: "I will push you beyond what you ever thought was possible.",
+    author: "Terence Fletcher (Whiplash) — push yourself",
+  },
+  {
+    quote: "The next Charlie Parker will be discouraged. Not if I can help it.",
+    author: "Terence Fletcher (Whiplash)",
+  },
+  // Kobe Bryant
+  {
+    quote:
+      "I have nothing in common with lazy people who blame others for their lack of success. Great things come from hard work and perseverance. No excuses.",
+    author: "Kobe Bryant",
+  },
+  {
+    quote:
+      "The most important thing is to try and inspire people so that they can be great in whatever they want to do.",
+    author: "Kobe Bryant",
+  },
+  {
+    quote:
+      "Once you know what failure feels like, determination chases success.",
+    author: "Kobe Bryant",
+  },
+  {
+    quote: "I can't relate to lazy people. We don't speak the same language.",
+    author: "Kobe Bryant",
+  },
+  {
+    quote:
+      "Those times when you get up early and you work hard — those times when you stay up late and you work hard — that stuff matters.",
+    author: "Kobe Bryant",
+  },
+  // Cristiano Ronaldo
+  {
+    quote: "Talent without working hard is nothing.",
+    author: "Cristiano Ronaldo",
+  },
+  {
+    quote:
+      "I am not a perfectionist, but I like to feel that things are done well. More important than that, I feel an endless need to learn.",
+    author: "Cristiano Ronaldo",
+  },
+  {
+    quote:
+      "Your love for what you do and willingness to push yourself where others aren't willing to go is what will make you great.",
+    author: "Cristiano Ronaldo",
+  },
+  {
+    quote:
+      "Dreams are not what you see in sleep. Dreams are things which don't let you sleep.",
+    author: "Cristiano Ronaldo",
+  },
+  // Muhammad Ali
+  {
+    quote:
+      "I hated every minute of training, but I said, don't quit. Suffer now and live the rest of your life as a champion.",
+    author: "Muhammad Ali",
+  },
+  {
+    quote: "I am the greatest. I said that even before I knew I was.",
     author: "Muhammad Ali",
   },
   {
     quote:
-      "Don't count the days. Make the days count. Every single one of them.",
+      "Float like a butterfly, sting like a bee — your hands can't hit what your eyes can't see.",
     author: "Muhammad Ali",
   },
   {
-    quote:
-      "Impossible is not a fact. It is an opinion. Impossible is temporary. Impossible is nothing.",
+    quote: "The will must be stronger than the skill.",
     author: "Muhammad Ali",
   },
   {
-    quote:
-      "He who is not courageous enough to take risks will accomplish nothing in life. Take the risk.",
+    quote: "Impossible is just a big word thrown around by small men.",
     author: "Muhammad Ali",
   },
+  // Michael Jordan
   {
     quote:
-      "Champions are made from something deep inside them — a hunger, a dream, an unbreakable will. Find yours.",
-    author: "Muhammad Ali",
-  },
-  {
-    quote:
-      "When you feel like quitting, think about why you started. That reason is still waiting for you.",
-    author: "Virat Kohli",
-  },
-  {
-    quote:
-      "You don't need anyone's permission to be great. Give that permission to yourself — right now.",
-    author: "Virat Kohli",
-  },
-  {
-    quote:
-      "Stop doubting yourself. The world will be convinced the moment you are.",
-    author: "Virat Kohli",
-  },
-  {
-    quote:
-      "Success is not given. It is earned — in the books, in the practice, in the grind, every single day.",
-    author: "Virat Kohli",
-  },
-  {
-    quote:
-      "Be so relentlessly good that the world has no choice but to notice you.",
-    author: "Virat Kohli",
-  },
-  {
-    quote:
-      "I've failed over and over in my life. That is exactly why I succeed. Failure is the path, not the stop.",
+      "I've missed more than 9,000 shots in my career. I've lost almost 300 games. I've failed over and over and over again in my life. And that is why I succeed.",
     author: "Michael Jordan",
   },
   {
     quote:
-      "The ceiling you see right now is just the floor of the next level. Break through it.",
+      "Some people want it to happen, some wish it would happen, others make it happen.",
     author: "Michael Jordan",
   },
   {
     quote:
-      "Talent will get you in the room. Relentless, obsessive work will make you the one who owns it.",
+      "If you do the work you get rewarded. There are no shortcuts in life.",
     author: "Michael Jordan",
   },
   {
-    quote:
-      "Your mind gives up long before your body does. Train your mind first, everything else follows.",
+    quote: "Always turn a negative situation into a positive situation.",
     author: "Michael Jordan",
+  },
+  // Virat Kohli
+  {
+    quote: "Self-belief and hard work will always earn you success.",
+    author: "Virat Kohli",
   },
   {
     quote:
-      "The people who are crazy enough to think they can change the world are the ones who do. Be that person.",
+      "If you want to be the best, you have to do things that other people aren't willing to do.",
+    author: "Virat Kohli",
+  },
+  {
+    quote:
+      "I don't think about what might go wrong. I only think about what I need to do.",
+    author: "Virat Kohli",
+  },
+  // Arnold Schwarzenegger
+  {
+    quote:
+      "The mind is the limit. As long as the mind can envision the fact that you can do something, you can do it.",
+    author: "Arnold Schwarzenegger",
+  },
+  {
+    quote:
+      "For every day that you don't work out, someone else is getting stronger.",
+    author: "Arnold Schwarzenegger",
+  },
+  {
+    quote: "Everybody pities the weak; jealousy you have to earn.",
+    author: "Arnold Schwarzenegger",
+  },
+  {
+    quote: "You can have results or excuses. Not both.",
+    author: "Arnold Schwarzenegger",
+  },
+  // Steve Jobs
+  {
+    quote:
+      "The people who are crazy enough to think they can change the world are the ones who do.",
     author: "Steve Jobs",
   },
   {
+    quote: "Your time is limited. Don't waste it living someone else's life.",
+    author: "Steve Jobs",
+  },
+  { quote: "Stay hungry. Stay foolish.", author: "Steve Jobs" },
+  {
     quote:
-      "Your time here is limited. Don't waste a single day living someone else's version of your life.",
+      "Have the courage to follow your heart and intuition. They somehow already know what you truly want to become.",
+    author: "Steve Jobs",
+  },
+  // APJ Abdul Kalam
+  {
+    quote:
+      "Dream is not that which you see while sleeping — it is something that does not let you sleep.",
+    author: "APJ Abdul Kalam",
+  },
+  {
+    quote:
+      "All of us do not have equal talent, but all of us have an equal opportunity to develop our talents.",
+    author: "APJ Abdul Kalam",
+  },
+  {
+    quote:
+      "To succeed in life and achieve results, you must understand and master three mighty forces — desire, belief, and expectation.",
+    author: "APJ Abdul Kalam",
+  },
+  {
+    quote: "Excellence is a continuous process and not an accident.",
+    author: "APJ Abdul Kalam",
+  },
+  // Avengers / MCU
+  {
+    quote: "Part of the journey is the end.",
+    author: "Tony Stark (Avengers: Endgame) — finish what you started",
+  },
+  {
+    quote: "I am Iron Man.",
+    author: "Tony Stark — own your identity, own your goal",
+  },
+  { quote: "Whatever it takes.", author: "Avengers: Endgame — your mantra" },
+  {
+    quote: "I can do this all day.",
+    author: "Steve Rogers (Captain America) — every single day",
+  },
+  {
+    quote: "The hardest choices require the strongest wills.",
+    author: "Thanos (Avengers: Infinity War) — out-will the challenge",
+  },
+  // Forrest Gump
+  {
+    quote:
+      "Life is like a box of chocolates — you never know what you're gonna get. But you keep going.",
+    author: "Forrest Gump",
+  },
+  {
+    quote: "Stupid is as stupid does — and quitting is the stupidest move.",
+    author: "Forrest Gump",
+  },
+  // The Social Network
+  {
+    quote:
+      "A million dollars isn't cool. You know what's cool? A billion dollars.",
+    author: "Sean Parker (The Social Network) — think bigger",
+  },
+  {
+    quote:
+      "We lived on farms, then we lived in cities, and now we're going to live on the internet.",
+    author: "The Social Network — be ahead of your time",
+  },
+  // Matrix
+  {
+    quote: "There is no spoon.",
+    author: "The Matrix — the limits you see aren't real",
+  },
+  {
+    quote:
+      "I'm trying to free your mind, Neo. But I can only show you the door. You're the one that has to walk through it.",
+    author: "Morpheus (The Matrix)",
+  },
+  {
+    quote: "Stop trying to hit me and hit me!",
+    author: "Morpheus (The Matrix) — stop hesitating, execute",
+  },
+  // Misc Legends
+  {
+    quote: "The secret of getting ahead is getting started.",
+    author: "Mark Twain",
+  },
+  {
+    quote: "It always seems impossible until it's done.",
+    author: "Nelson Mandela",
+  },
+  {
+    quote: "The only way to do great work is to love what you do.",
     author: "Steve Jobs",
   },
   {
-    quote:
-      "Every morning you have two choices: keep sleeping with your dreams, or wake up and go build them.",
-    author: "Arnold Schwarzenegger",
+    quote: "In the middle of every difficulty lies opportunity.",
+    author: "Albert Einstein",
+  },
+  {
+    quote: "A smooth sea never made a skilled sailor.",
+    author: "Franklin D. Roosevelt",
   },
   {
     quote:
-      "The last few reps are the ones that build strength. The last hour of study is where breakthroughs happen.",
-    author: "Arnold Schwarzenegger",
+      "Success is stumbling from failure to failure with no loss of enthusiasm.",
+    author: "Winston Churchill",
+  },
+  { quote: "The harder I work, the luckier I get.", author: "Samuel Goldwyn" },
+  {
+    quote: "You miss 100% of the shots you don't take.",
+    author: "Wayne Gretzky",
+  },
+  {
+    quote: "It does not matter how slowly you go as long as you do not stop.",
+    author: "Confucius",
   },
   {
     quote:
-      "No matter what — outwork everyone. That is the one thing you have complete control over.",
-    author: "Arnold Schwarzenegger",
+      "The best time to plant a tree was 20 years ago. The second best time is now.",
+    author: "Chinese Proverb",
   },
   {
-    quote:
-      "Your future self is watching you right now through your memories. Make him proud today.",
-    author: "Arnold Schwarzenegger",
+    quote: "Opportunities don't happen. You create them.",
+    author: "Chris Grosser",
   },
   {
-    quote:
-      "You are one decision away from a completely different life. Make that decision today.",
-    author: "Jeff Bezos",
+    quote: "I find that the harder I work, the more luck I seem to have.",
+    author: "Thomas Jefferson",
   },
   {
-    quote:
-      "The regret of not trying will always be heavier than the regret of trying and failing. Always.",
-    author: "Jeff Bezos",
+    quote: "Don't watch the clock; do what it does. Keep going.",
+    author: "Sam Levenson",
   },
   {
-    quote:
-      "The best investment you will ever make is in yourself. Your mind is your greatest asset — sharpen it.",
-    author: "Warren Buffett",
-  },
-  {
-    quote:
-      "Today's preparation is tomorrow's achievement. What you do in the next hour matters more than you know.",
+    quote: "Energy and persistence conquer all things.",
     author: "Benjamin Franklin",
   },
   {
-    quote:
-      "Genius is 1% inspiration and 99% showing up when you don't feel like it. Show up today.",
-    author: "Thomas Edison",
+    quote: "Act as if what you do makes a difference. It does.",
+    author: "William James",
   },
   {
     quote:
-      "The secret to getting ahead is getting started — not tomorrow, not later. Right now, this very moment.",
-    author: "Mark Twain",
+      "Success is not final, failure is not fatal: it is the courage to continue that counts.",
+    author: "Winston Churchill",
+  },
+  {
+    quote: "Believe you can and you're halfway there.",
+    author: "Theodore Roosevelt",
+  },
+  {
+    quote:
+      "The only person you are destined to become is the person you decide to be.",
+    author: "Ralph Waldo Emerson",
+  },
+  {
+    quote: "You are never too old to set another goal or to dream a new dream.",
+    author: "C.S. Lewis",
   },
 ];
-
-function getDailyQuote() {
-  const now = new Date();
-  const dayOfYear = Math.floor(
-    (now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000,
-  );
-  return MOTIVATIONAL_QUOTES[dayOfYear % MOTIVATIONAL_QUOTES.length];
-}
 
 function getWeekStart(dateStr: string): string {
   const d = new Date(`${dateStr}T12:00:00`);
@@ -303,7 +541,13 @@ function getWeekDays(weekStartStr: string): string[] {
 }
 
 function CompactQuoteCard() {
-  const { quote, author } = getDailyQuote();
+  const [offset, setOffset] = useState(0);
+  const now = new Date();
+  const dayOfYear = Math.floor(
+    (now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000,
+  );
+  const { quote, author } =
+    MOTIVATIONAL_QUOTES[(dayOfYear + offset) % MOTIVATIONAL_QUOTES.length];
 
   return (
     <>
@@ -318,30 +562,49 @@ function CompactQuoteCard() {
           backdropFilter: "blur(16px)",
         }}
       >
-        <p
-          className="text-xs leading-snug line-clamp-3"
-          style={{ color: "rgba(255,245,210,0.88)" }}
-        >
-          <Zap
-            className="inline w-3 h-3 mr-1 shrink-0"
+        <div className="flex items-center gap-1">
+          <div className="flex-1 min-w-0">
+            <p
+              className="text-xs leading-snug line-clamp-3"
+              style={{ color: "rgba(255,245,210,0.88)" }}
+            >
+              <Zap
+                className="inline w-3 h-3 mr-1 shrink-0"
+                style={{
+                  color: "#fbbf24",
+                  filter: "drop-shadow(0 0 3px rgba(251,191,36,0.5))",
+                  verticalAlign: "middle",
+                }}
+              />
+              {quote}
+            </p>
+            <p
+              className="text-xs mt-1 font-semibold tracking-wide"
+              style={{
+                background: "linear-gradient(90deg, #fbbf24, #f59e0b)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+              }}
+            >
+              — {author}
+            </p>
+          </div>
+          <button
+            type="button"
+            data-ocid="quote.button"
+            onClick={() => setOffset((prev) => prev + 1)}
+            className="shrink-0 p-0.5 rounded hover:opacity-80 transition-opacity"
             style={{
               color: "#fbbf24",
-              filter: "drop-shadow(0 0 3px rgba(251,191,36,0.5))",
-              verticalAlign: "middle",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
             }}
-          />
-          {quote}
-        </p>
-        <p
-          className="text-xs mt-1 font-semibold tracking-wide"
-          style={{
-            background: "linear-gradient(90deg, #fbbf24, #f59e0b)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-          }}
-        >
-          — {author}
-        </p>
+            title="Next quote"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </>
   );
