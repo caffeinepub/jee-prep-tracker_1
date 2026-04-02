@@ -46,7 +46,7 @@ export default function App() {
           {/* Brand */}
           <div className="flex items-center gap-2.5">
             <span className="font-display font-bold text-lg tracking-tight gradient-text">
-              JEE Prep
+              AIR PREP
             </span>
           </div>
 
