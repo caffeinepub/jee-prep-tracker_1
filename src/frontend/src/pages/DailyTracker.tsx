@@ -12,7 +12,11 @@ interface DateRange {
 interface DayLog {
   moduleDone: boolean;
   dppDone: boolean;
+  rev1Done: boolean;
+  rev2Done: boolean;
 }
+
+type DayField = "moduleDone" | "dppDone" | "rev1Done" | "rev2Done";
 
 function generateDates(start: string, end: string): string[] {
   const dates: string[] = [];
@@ -53,11 +57,11 @@ function DayRow({
 }: {
   dateStr: string;
   log: DayLog;
-  onToggle: (field: "moduleDone" | "dppDone") => void;
+  onToggle: (field: DayField) => void;
   index: number;
   isToday: boolean;
 }) {
-  const bothDone = log.moduleDone && log.dppDone;
+  const allDone = log.moduleDone && log.dppDone && log.rev1Done && log.rev2Done;
 
   return (
     <div
@@ -65,12 +69,12 @@ function DayRow({
       id={`day-${dateStr}`}
       className="flex flex-wrap md:flex-nowrap items-center gap-3 p-3 rounded-lg transition-all duration-200"
       style={{
-        background: bothDone
+        background: allDone
           ? "rgba(34,197,94,0.05)"
           : isToday
             ? "rgba(0,212,224,0.05)"
             : "rgba(255,255,255,0.02)",
-        border: bothDone
+        border: allDone
           ? "1px solid rgba(34,197,94,0.15)"
           : isToday
             ? "1px solid rgba(0,212,224,0.25)"
@@ -96,11 +100,13 @@ function DayRow({
         </span>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        {/* Module */}
         <button
           type="button"
           data-ocid={`daily.module.toggle.${index}`}
           onClick={() => onToggle("moduleDone")}
+          title="Module completed for this day"
           className="px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-200"
           style={
             log.moduleDone
@@ -119,10 +125,12 @@ function DayRow({
           📦 Module
         </button>
 
+        {/* DPP */}
         <button
           type="button"
           data-ocid={`daily.dpp.toggle.${index}`}
           onClick={() => onToggle("dppDone")}
+          title="DPP completed for this day"
           className="px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-200"
           style={
             log.dppDone
@@ -141,7 +149,57 @@ function DayRow({
           📝 DPP
         </button>
 
-        {bothDone && (
+        {/* REV1 — latest lecture revision (done right after lecture) */}
+        <button
+          type="button"
+          data-ocid={`daily.rev1.toggle.${index}`}
+          onClick={() => onToggle("rev1Done")}
+          title="REV1: Revision of today's latest lecture topic (do right after the lecture)"
+          className="px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-200"
+          style={
+            log.rev1Done
+              ? {
+                  background: "rgba(251,146,60,0.15)",
+                  color: "rgb(251,146,60)",
+                  borderColor: "rgba(251,146,60,0.35)",
+                  boxShadow: "0 0 6px rgba(251,146,60,0.15)",
+                }
+              : {
+                  background: "transparent",
+                  color: "var(--muted-foreground)",
+                  borderColor: "var(--border)",
+                }
+          }
+        >
+          🔥 REV1
+        </button>
+
+        {/* REV2 — all past topics revision (done before next lecture) */}
+        <button
+          type="button"
+          data-ocid={`daily.rev2.toggle.${index}`}
+          onClick={() => onToggle("rev2Done")}
+          title="REV2: Revision of all past topics (do before the upcoming lecture)"
+          className="px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-200"
+          style={
+            log.rev2Done
+              ? {
+                  background: "rgba(168,85,247,0.15)",
+                  color: "rgb(192,132,252)",
+                  borderColor: "rgba(168,85,247,0.35)",
+                  boxShadow: "0 0 6px rgba(168,85,247,0.15)",
+                }
+              : {
+                  background: "transparent",
+                  color: "var(--muted-foreground)",
+                  borderColor: "var(--border)",
+                }
+          }
+        >
+          🔁 REV2
+        </button>
+
+        {allDone && (
           <Badge
             className="text-xs border"
             style={{
@@ -169,7 +227,7 @@ function MonthSection({
   monthKey: string;
   dates: string[];
   dailyLog: Record<string, DayLog>;
-  onToggle: (date: string, field: "moduleDone" | "dppDone") => void;
+  onToggle: (date: string, field: DayField) => void;
   defaultOpen: boolean;
   globalOffset: number;
 }) {
@@ -178,10 +236,16 @@ function MonthSection({
 
   const moduleCount = dates.filter((d) => dailyLog[d]?.moduleDone).length;
   const dppCount = dates.filter((d) => dailyLog[d]?.dppDone).length;
-  const bothCount = dates.filter(
-    (d) => dailyLog[d]?.moduleDone && dailyLog[d]?.dppDone,
+  const rev1Count = dates.filter((d) => dailyLog[d]?.rev1Done).length;
+  const rev2Count = dates.filter((d) => dailyLog[d]?.rev2Done).length;
+  const allCount = dates.filter(
+    (d) =>
+      dailyLog[d]?.moduleDone &&
+      dailyLog[d]?.dppDone &&
+      dailyLog[d]?.rev1Done &&
+      dailyLog[d]?.rev2Done,
   ).length;
-  const pct = dates.length ? Math.round((bothCount / dates.length) * 100) : 0;
+  const pct = dates.length ? Math.round((allCount / dates.length) * 100) : 0;
 
   return (
     <div className="mb-3">
@@ -206,12 +270,14 @@ function MonthSection({
             {monthKey}
           </span>
           <span className="text-xs text-muted-foreground">
-            {bothCount}/{dates.length} complete
+            {allCount}/{dates.length} complete
           </span>
         </div>
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
           <span style={{ color: "rgb(74,222,128)" }}>M: {moduleCount}</span>
           <span style={{ color: "rgb(0,212,224)" }}>D: {dppCount}</span>
+          <span style={{ color: "rgb(251,146,60)" }}>R1: {rev1Count}</span>
+          <span style={{ color: "rgb(192,132,252)" }}>R2: {rev2Count}</span>
           <span
             className="font-mono font-medium"
             style={{
@@ -229,7 +295,14 @@ function MonthSection({
             <DayRow
               key={d}
               dateStr={d}
-              log={dailyLog[d] || { moduleDone: false, dppDone: false }}
+              log={
+                dailyLog[d] || {
+                  moduleDone: false,
+                  dppDone: false,
+                  rev1Done: false,
+                  rev2Done: false,
+                }
+              }
               onToggle={(field) => onToggle(d, field)}
               index={globalOffset + i + 1}
               isToday={d === today}
@@ -274,8 +347,14 @@ export default function DailyTracker() {
   const totalDays = dates.length;
   const moduleDoneCount = dates.filter((d) => dailyLog[d]?.moduleDone).length;
   const dppDoneCount = dates.filter((d) => dailyLog[d]?.dppDone).length;
-  const bothDoneCount = dates.filter(
-    (d) => dailyLog[d]?.moduleDone && dailyLog[d]?.dppDone,
+  const rev1DoneCount = dates.filter((d) => dailyLog[d]?.rev1Done).length;
+  const rev2DoneCount = dates.filter((d) => dailyLog[d]?.rev2Done).length;
+  const allDoneCount = dates.filter(
+    (d) =>
+      dailyLog[d]?.moduleDone &&
+      dailyLog[d]?.dppDone &&
+      dailyLog[d]?.rev1Done &&
+      dailyLog[d]?.rev2Done,
   ).length;
 
   const saveRange = () => {
@@ -298,12 +377,14 @@ export default function DailyTracker() {
     setDateRange({ startDate: startInput, endDate: endInput });
   };
 
-  const toggleDay = (date: string, field: "moduleDone" | "dppDone") => {
+  const toggleDay = (date: string, field: DayField) => {
     setDailyLog((prev) => ({
       ...prev,
       [date]: {
         moduleDone: prev[date]?.moduleDone ?? false,
         dppDone: prev[date]?.dppDone ?? false,
+        rev1Done: prev[date]?.rev1Done ?? false,
+        rev2Done: prev[date]?.rev2Done ?? false,
         [field]: !(prev[date]?.[field] ?? false),
       },
     }));
@@ -343,8 +424,27 @@ export default function DailyTracker() {
           Daily Tracker
         </h1>
         <p className="text-muted-foreground text-sm mt-1.5">
-          Track Module and DPP completion for every day of your JEE prep
+          Track Module, DPP, and Revisions for every day of your JEE prep
         </p>
+        {/* Legend */}
+        <div className="flex flex-wrap gap-4 mt-3 text-xs text-muted-foreground">
+          <span>
+            <span style={{ color: "rgb(74,222,128)" }}>📦 Module</span> — module
+            completed
+          </span>
+          <span>
+            <span style={{ color: "rgb(0,212,224)" }}>📝 DPP</span> — daily
+            practice problems
+          </span>
+          <span>
+            <span style={{ color: "rgb(251,146,60)" }}>🔥 REV1</span> — revision
+            of latest lecture (do right after lecture)
+          </span>
+          <span>
+            <span style={{ color: "rgb(192,132,252)" }}>🔁 REV2</span> —
+            revision of all past topics (do before next lecture)
+          </span>
+        </div>
       </div>
 
       {/* Date Range Setup */}
@@ -450,7 +550,7 @@ export default function DailyTracker() {
           }}
         >
           <CardContent className="p-5">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
               <div className="text-center">
                 <div
                   className="text-2xl font-bold font-mono"
@@ -470,7 +570,7 @@ export default function DailyTracker() {
                   {moduleDoneCount}
                 </div>
                 <div className="text-xs text-muted-foreground mt-0.5">
-                  Modules Done (
+                  Modules (
                   {totalDays
                     ? Math.round((moduleDoneCount / totalDays) * 100)
                     : 0}
@@ -485,8 +585,38 @@ export default function DailyTracker() {
                   {dppDoneCount}
                 </div>
                 <div className="text-xs text-muted-foreground mt-0.5">
-                  DPPs Done (
+                  DPPs (
                   {totalDays ? Math.round((dppDoneCount / totalDays) * 100) : 0}
+                  %)
+                </div>
+              </div>
+              <div className="text-center">
+                <div
+                  className="text-2xl font-bold font-mono"
+                  style={{ color: "rgb(251,146,60)" }}
+                >
+                  {rev1DoneCount}
+                </div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  REV1 (
+                  {totalDays
+                    ? Math.round((rev1DoneCount / totalDays) * 100)
+                    : 0}
+                  %)
+                </div>
+              </div>
+              <div className="text-center">
+                <div
+                  className="text-2xl font-bold font-mono"
+                  style={{ color: "rgb(192,132,252)" }}
+                >
+                  {rev2DoneCount}
+                </div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  REV2 (
+                  {totalDays
+                    ? Math.round((rev2DoneCount / totalDays) * 100)
+                    : 0}
                   %)
                 </div>
               </div>
@@ -495,18 +625,14 @@ export default function DailyTracker() {
                   className="text-2xl font-bold font-mono"
                   style={{
                     color:
-                      bothDoneCount > 0
-                        ? "rgb(74,222,128)"
-                        : "rgb(148,163,184)",
+                      allDoneCount > 0 ? "rgb(74,222,128)" : "rgb(148,163,184)",
                   }}
                 >
-                  {bothDoneCount}
+                  {allDoneCount}
                 </div>
                 <div className="text-xs text-muted-foreground mt-0.5">
-                  Both Done (
-                  {totalDays
-                    ? Math.round((bothDoneCount / totalDays) * 100)
-                    : 0}
+                  All Done (
+                  {totalDays ? Math.round((allDoneCount / totalDays) * 100) : 0}
                   %)
                 </div>
               </div>

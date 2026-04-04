@@ -38,28 +38,24 @@ function formatHours(h: unknown) {
 }
 
 // Get Monday of the week containing the given date
-// Guard: if date is invalid, fall back to today
 function getWeekStart(dateStr: string): string {
   try {
     const d = new Date(`${dateStr}T12:00:00`);
     if (Number.isNaN(d.getTime())) return getWeekStart(todayStr());
-    const day = d.getDay(); // 0=Sun
+    const day = d.getDay();
     const diff = day === 0 ? -6 : 1 - day;
     d.setDate(d.getDate() + diff);
-    const result = d.toISOString().split("T")[0];
-    return result;
+    return d.toISOString().split("T")[0];
   } catch {
     return getWeekStart(todayStr());
   }
 }
 
 // Get all 7 days Mon–Sun of a week
-// Guard: if weekStartStr is invalid, use today's week
 function getWeekDays(weekStartStr: string): string[] {
   try {
     const start = new Date(`${weekStartStr}T12:00:00`);
     if (Number.isNaN(start.getTime())) {
-      // Fallback: return 7 copies of today
       const t = todayStr();
       return Array(7).fill(t);
     }
@@ -76,7 +72,6 @@ function getWeekDays(weekStartStr: string): string[] {
   }
 }
 
-// "28 Mar – 3 Apr" style label
 function getWeekLabel(weekStartStr: string): string {
   try {
     const start = new Date(`${weekStartStr}T12:00:00`);
@@ -102,7 +97,6 @@ function getWeekLabel(weekStartStr: string): string {
   }
 }
 
-// All week-starts that overlap with a calendar month
 function getWeeksInMonth(year: number, month: number): string[] {
   try {
     const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -117,7 +111,6 @@ function getWeeksInMonth(year: number, month: number): string[] {
   }
 }
 
-// Safe: handles undefined/null log
 function sumHours(dates: string[], log: Record<string, number>): number {
   if (!log || typeof log !== "object") return 0;
   return dates.reduce((sum, d) => {
@@ -126,8 +119,6 @@ function sumHours(dates: string[], log: Record<string, number>): number {
   }, 0);
 }
 
-// Calculate prep day number (1-based) from start date to target date
-// Guard: if either date is invalid, return 1
 function calcPrepDay(prepStart: string, targetDate: string): number {
   try {
     const start = new Date(`${prepStart}T00:00:00`);
@@ -174,7 +165,6 @@ const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const DEFAULT_PREP_START = "2026-04-06";
 
 export default function TimerPage() {
-  // Raw storage — may contain old data from previous timer versions
   const [rawDailyLog, setDailyLog] = useLocalStorage<Record<string, number>>(
     "jee_daily_log",
     {},
@@ -188,17 +178,15 @@ export default function TimerPage() {
     DEFAULT_PREP_START,
   );
 
-  // Normalize: only keep YYYY-MM-DD keys with numeric values.
-  // Wrapped in try/catch to guard against any unexpected localStorage corruption.
+  // Normalize daily log
   const dailyLog = useMemo((): Record<string, number> => {
     try {
       if (
         !rawDailyLog ||
         typeof rawDailyLog !== "object" ||
         Array.isArray(rawDailyLog)
-      ) {
+      )
         return {};
-      }
       return Object.fromEntries(
         Object.entries(rawDailyLog).filter(
           ([k, v]) =>
@@ -212,60 +200,131 @@ export default function TimerPage() {
     }
   }, [rawDailyLog]);
 
-  // Safe weeklyTarget fallback
   const safeTarget =
     typeof weeklyTarget === "number" &&
     !Number.isNaN(weeklyTarget) &&
     weeklyTarget > 0
       ? weeklyTarget
       : 40;
-
-  // Safe prepStartDate fallback — computed BEFORE defaultLogDate
   const safePrepStart =
     typeof prepStartDate === "string" &&
     /^\d{4}-\d{2}-\d{2}$/.test(prepStartDate)
       ? prepStartDate
       : DEFAULT_PREP_START;
-
-  // Default selected log date: today if >= prep start, else prep start
   const defaultLogDate =
     todayStr() >= safePrepStart ? todayStr() : safePrepStart;
   const [selectedLogDate, setSelectedLogDate] =
     useState<string>(defaultLogDate);
 
-  const [elapsed, setElapsed] = useState(0);
+  // ── TIMESTAMP-BASED TIMER (browser-tab-safe) ──────────────────────────────
+  // Instead of counting ticks, we store when the session started and compute
+  // elapsed = (now - startTime) - totalBreakDuration  on every render tick.
+  // This survives tab throttling, sleep, and switching to YouTube.
+  const [startTimestamp, setStartTimestamp] = useState<number | null>(null); // ms epoch when current run segment started
+  const [accumulatedMs, setAccumulatedMs] = useState<number>(0); // ms from already-finished segments
   const [running, setRunning] = useState(false);
   const [onBreak, setOnBreak] = useState(false);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [todayInput, setTodayInput] = useState("");
-  const [expandedWeek, setExpandedWeek] = useState<string | null>(null);
+  const [_breakStartTimestamp, setBreakStartTimestamp] = useState<
+    number | null
+  >(null); // when break started
+  const [displaySeconds, setDisplaySeconds] = useState(0);
+  const rafRef = useRef<number | null>(null);
 
-  const tick = useCallback(() => setElapsed((p) => p + 1), []);
+  // Compute elapsed seconds from timestamps — accurate even when tab is hidden
+  const getElapsedSeconds = useCallback((): number => {
+    let ms = accumulatedMs;
+    if (running && !onBreak && startTimestamp !== null) {
+      ms += Date.now() - startTimestamp;
+    }
+    return Math.floor(ms / 1000);
+  }, [accumulatedMs, running, onBreak, startTimestamp]);
 
+  // rAF loop: just updates the display ~every second
   useEffect(() => {
+    let lastSec = -1;
+    const loop = () => {
+      const sec = getElapsedSeconds();
+      if (sec !== lastSec) {
+        lastSec = sec;
+        setDisplaySeconds(sec);
+      }
+      if (running && !onBreak) {
+        rafRef.current = requestAnimationFrame(loop);
+      }
+    };
     if (running && !onBreak) {
-      intervalRef.current = setInterval(tick, 1000);
+      rafRef.current = requestAnimationFrame(loop);
     } else {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      // Immediately sync display when paused/on-break
+      setDisplaySeconds(getElapsedSeconds());
     }
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
     };
-  }, [running, onBreak, tick]);
+  }, [running, onBreak, getElapsedSeconds]);
+
+  // Page Visibility API: re-sync display when user comes back to the tab
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (!document.hidden) {
+        setDisplaySeconds(getElapsedSeconds());
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibility);
+  }, [getElapsedSeconds]);
 
   const handleStart = () => {
     if (!running) {
+      setStartTimestamp(Date.now());
       setRunning(true);
       setOnBreak(false);
     }
   };
-  const handlePause = () => setRunning((r) => !r);
-  const handleBreak = () => setOnBreak((b) => !b);
 
-  // Stop & Save always saves to TODAY (not selected date)
+  const handlePause = () => {
+    if (running) {
+      // Flush current segment into accumulatedMs
+      if (!onBreak && startTimestamp !== null) {
+        setAccumulatedMs((prev) => prev + (Date.now() - startTimestamp));
+        setStartTimestamp(null);
+      }
+      setRunning(false);
+    } else {
+      // Resume
+      setStartTimestamp(Date.now());
+      setRunning(true);
+    }
+  };
+
+  const handleBreak = () => {
+    if (!running) return;
+    if (!onBreak) {
+      // Starting break: flush running segment
+      if (startTimestamp !== null) {
+        setAccumulatedMs((prev) => prev + (Date.now() - startTimestamp));
+        setStartTimestamp(null);
+      }
+      setBreakStartTimestamp(Date.now());
+      setOnBreak(true);
+    } else {
+      // Ending break: resume timer
+      setBreakStartTimestamp(null);
+      setStartTimestamp(Date.now());
+      setOnBreak(false);
+    }
+  };
+
   const handleStop = () => {
-    if (elapsed > 0) {
-      const hrs = elapsed / 3600;
+    // Flush any running segment
+    let finalMs = accumulatedMs;
+    if (running && !onBreak && startTimestamp !== null) {
+      finalMs += Date.now() - startTimestamp;
+    }
+    const totalSeconds = Math.floor(finalMs / 1000);
+    if (totalSeconds > 0) {
+      const hrs = totalSeconds / 3600;
       const today = todayStr();
       const current = dailyLog[today] || 0;
       setDailyLog({
@@ -273,15 +332,21 @@ export default function TimerPage() {
         [today]: Math.round((current + hrs) * 100) / 100,
       });
       toast.success(
-        `Session saved: ${formatTime(elapsed)} added to today's log`,
+        `Session saved: ${formatTime(totalSeconds)} added to today's log`,
       );
     }
+    // Reset all timer state
     setRunning(false);
     setOnBreak(false);
-    setElapsed(0);
+    setStartTimestamp(null);
+    setAccumulatedMs(0);
+    setBreakStartTimestamp(null);
+    setDisplaySeconds(0);
   };
 
-  // Log for selected date
+  const [todayInput, setTodayInput] = useState("");
+  const [expandedWeek, setExpandedWeek] = useState<string | null>(null);
+
   const handleLogDate = () => {
     const val = Number.parseFloat(todayInput);
     if (Number.isNaN(val) || val < 0) {
@@ -306,16 +371,12 @@ export default function TimerPage() {
   const currentMonth = now.getMonth();
   const currentMonthKey = `${currentYear}-${pad(currentMonth + 1)}`;
 
-  // This week
   const currentWeekStart = getWeekStart(today);
   const currentWeekDays = getWeekDays(currentWeekStart);
   const thisWeekHours = sumHours(currentWeekDays, dailyLog);
   const weekPct = Math.min((thisWeekHours / safeTarget) * 100, 100);
-
-  // Selected date hours
   const selectedDateLogged = dailyLog[selectedLogDate] || 0;
 
-  // Prep Day computation — wrapped in try/catch
   const prepDayDisplay = useMemo(() => {
     try {
       if (today < safePrepStart) {
@@ -329,7 +390,6 @@ export default function TimerPage() {
     }
   }, [today, safePrepStart]);
 
-  // This month
   const daysInCurrentMonth = new Date(
     currentYear,
     currentMonth + 1,
@@ -342,7 +402,6 @@ export default function TimerPage() {
   const thisMonthHours = sumHours(currentMonthDays, dailyLog);
   const weeksInCurrentMonth = getWeeksInMonth(currentYear, currentMonth);
 
-  // This year
   const yearMonths = Array.from({ length: 12 }, (_, m) => {
     const daysInMonth = new Date(currentYear, m + 1, 0).getDate();
     const days: string[] = [];
@@ -357,7 +416,6 @@ export default function TimerPage() {
   });
   const thisYearHours = yearMonths.reduce((sum, m) => sum + m.hours, 0);
 
-  // Full daily log: only show entries from prep start onwards
   const allDates = Object.keys(dailyLog)
     .filter((d) => d >= safePrepStart)
     .sort();
@@ -369,7 +427,6 @@ export default function TimerPage() {
       ? "font-mono text-6xl font-bold tracking-tight timer-glow text-primary animate-pulse-glow"
       : "font-mono text-6xl font-bold tracking-tight text-foreground/80";
 
-  // Safe maxMonthHours: filter out NaN values, ensure minimum of 1 to avoid division by zero
   const maxMonthHours = Math.max(
     ...yearMonths.map((m) => m.hours).filter((h) => !Number.isNaN(h)),
     1,
@@ -419,7 +476,7 @@ export default function TimerPage() {
                     : "none",
               }}
             >
-              <span className={timerClass}>{formatTime(elapsed)}</span>
+              <span className={timerClass}>{formatTime(displaySeconds)}</span>
             </div>
             {onBreak && (
               <Badge
@@ -474,7 +531,7 @@ export default function TimerPage() {
                 data-ocid="timer.stop.delete_button"
                 variant="outline"
                 onClick={handleStop}
-                disabled={elapsed === 0}
+                disabled={displaySeconds === 0 && accumulatedMs === 0}
                 className="border-destructive/40 text-destructive hover:bg-destructive/10"
               >
                 <Square className="w-4 h-4 mr-2" /> Stop & Save
@@ -518,7 +575,6 @@ export default function TimerPage() {
                   onChange={(e) => {
                     if (e.target.value) {
                       setPrepStartDate(e.target.value);
-                      // Reset selected log date if it's before new start
                       if (selectedLogDate < e.target.value) {
                         const newDefault =
                           today >= e.target.value ? today : e.target.value;
@@ -718,7 +774,6 @@ export default function TimerPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Progress bar */}
           <div>
             <div
               className="h-3 rounded-full overflow-hidden"
@@ -746,7 +801,6 @@ export default function TimerPage() {
               </span>
             </div>
           </div>
-          {/* 7-day bar chart */}
           <div className="grid grid-cols-7 gap-1.5">
             {currentWeekDays.map((date, i) => {
               const hrs = dailyLog[date] || 0;
@@ -987,7 +1041,6 @@ export default function TimerPage() {
             <div className="space-y-1.5">
               {yearMonths.map((m) => {
                 const isCurrent = m.key === currentMonthKey;
-                // Safe barPct: guard against NaN/Infinity from maxMonthHours being 0
                 const safeHours = Number.isNaN(m.hours) ? 0 : m.hours;
                 const barPct =
                   maxMonthHours > 0
