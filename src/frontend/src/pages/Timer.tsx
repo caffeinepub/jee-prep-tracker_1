@@ -30,14 +30,12 @@ function todayStr() {
   return new Date().toISOString().split("T")[0];
 }
 
-// Safe: handles non-numbers that may come from corrupted localStorage
 function formatHours(h: unknown) {
   const n = typeof h === "number" && !Number.isNaN(h) ? h : 0;
   if (n === 0) return "0h";
   return n % 1 === 0 ? `${n}h` : `${n.toFixed(1)}h`;
 }
 
-// Get Monday of the week containing the given date
 function getWeekStart(dateStr: string): string {
   try {
     const d = new Date(`${dateStr}T12:00:00`);
@@ -51,7 +49,6 @@ function getWeekStart(dateStr: string): string {
   }
 }
 
-// Get all 7 days Mon–Sun of a week
 function getWeekDays(weekStartStr: string): string[] {
   try {
     const start = new Date(`${weekStartStr}T12:00:00`);
@@ -164,6 +161,60 @@ const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 const DEFAULT_PREP_START = "2026-04-06";
 
+// Live timer session state, persisted to localStorage so navigation doesn't wipe it
+interface TimerSession {
+  running: boolean;
+  onBreak: boolean;
+  accumulatedMs: number; // ms from finished segments
+  startTimestamp: number | null; // wall-clock epoch ms when current run segment began
+}
+
+const DEFAULT_SESSION: TimerSession = {
+  running: false,
+  onBreak: false,
+  accumulatedMs: 0,
+  startTimestamp: null,
+};
+
+function readSession(): TimerSession {
+  try {
+    const raw = window.localStorage.getItem("jee_timer_session");
+    if (!raw) return DEFAULT_SESSION;
+    const parsed = JSON.parse(raw) as Partial<TimerSession>;
+    return {
+      running: typeof parsed.running === "boolean" ? parsed.running : false,
+      onBreak: typeof parsed.onBreak === "boolean" ? parsed.onBreak : false,
+      accumulatedMs:
+        typeof parsed.accumulatedMs === "number" &&
+        !Number.isNaN(parsed.accumulatedMs)
+          ? parsed.accumulatedMs
+          : 0,
+      startTimestamp:
+        typeof parsed.startTimestamp === "number"
+          ? parsed.startTimestamp
+          : null,
+    };
+  } catch {
+    return DEFAULT_SESSION;
+  }
+}
+
+function writeSession(s: TimerSession) {
+  try {
+    window.localStorage.setItem("jee_timer_session", JSON.stringify(s));
+  } catch {
+    // ignore
+  }
+}
+
+function clearSession() {
+  try {
+    window.localStorage.removeItem("jee_timer_session");
+  } catch {
+    // ignore
+  }
+}
+
 export default function TimerPage() {
   const [rawDailyLog, setDailyLog] = useLocalStorage<Record<string, number>>(
     "jee_daily_log",
@@ -178,7 +229,6 @@ export default function TimerPage() {
     DEFAULT_PREP_START,
   );
 
-  // Normalize daily log
   const dailyLog = useMemo((): Record<string, number> => {
     try {
       if (
@@ -216,21 +266,28 @@ export default function TimerPage() {
   const [selectedLogDate, setSelectedLogDate] =
     useState<string>(defaultLogDate);
 
-  // ── TIMESTAMP-BASED TIMER (browser-tab-safe) ──────────────────────────────
-  // Instead of counting ticks, we store when the session started and compute
-  // elapsed = (now - startTime) - totalBreakDuration  on every render tick.
-  // This survives tab throttling, sleep, and switching to YouTube.
-  const [startTimestamp, setStartTimestamp] = useState<number | null>(null); // ms epoch when current run segment started
-  const [accumulatedMs, setAccumulatedMs] = useState<number>(0); // ms from already-finished segments
-  const [running, setRunning] = useState(false);
-  const [onBreak, setOnBreak] = useState(false);
-  const [_breakStartTimestamp, setBreakStartTimestamp] = useState<
-    number | null
-  >(null); // when break started
+  // ── PERSISTED TIMESTAMP-BASED TIMER ──────────────────────────────────────
+  // All live timer state is loaded from localStorage on mount and written back
+  // on every change, so navigation away and back never loses state.
+
+  const initialSession = useMemo(() => readSession(), []);
+
+  const [running, setRunning] = useState(initialSession.running);
+  const [onBreak, setOnBreak] = useState(initialSession.onBreak);
+  const [accumulatedMs, setAccumulatedMs] = useState(
+    initialSession.accumulatedMs,
+  );
+  const [startTimestamp, setStartTimestamp] = useState<number | null>(
+    initialSession.startTimestamp,
+  );
   const [displaySeconds, setDisplaySeconds] = useState(0);
   const rafRef = useRef<number | null>(null);
 
-  // Compute elapsed seconds from timestamps — accurate even when tab is hidden
+  // Persist session state whenever it changes
+  useEffect(() => {
+    writeSession({ running, onBreak, accumulatedMs, startTimestamp });
+  }, [running, onBreak, accumulatedMs, startTimestamp]);
+
   const getElapsedSeconds = useCallback((): number => {
     let ms = accumulatedMs;
     if (running && !onBreak && startTimestamp !== null) {
@@ -239,7 +296,7 @@ export default function TimerPage() {
     return Math.floor(ms / 1000);
   }, [accumulatedMs, running, onBreak, startTimestamp]);
 
-  // rAF loop: just updates the display ~every second
+  // rAF loop: updates display ~every second
   useEffect(() => {
     let lastSec = -1;
     const loop = () => {
@@ -255,7 +312,6 @@ export default function TimerPage() {
     if (running && !onBreak) {
       rafRef.current = requestAnimationFrame(loop);
     } else {
-      // Immediately sync display when paused/on-break
       setDisplaySeconds(getElapsedSeconds());
     }
     return () => {
@@ -263,12 +319,10 @@ export default function TimerPage() {
     };
   }, [running, onBreak, getElapsedSeconds]);
 
-  // Page Visibility API: re-sync display when user comes back to the tab
+  // Re-sync display when tab becomes visible again
   useEffect(() => {
     const handleVisibility = () => {
-      if (!document.hidden) {
-        setDisplaySeconds(getElapsedSeconds());
-      }
+      if (!document.hidden) setDisplaySeconds(getElapsedSeconds());
     };
     document.addEventListener("visibilitychange", handleVisibility);
     return () =>
@@ -277,7 +331,8 @@ export default function TimerPage() {
 
   const handleStart = () => {
     if (!running) {
-      setStartTimestamp(Date.now());
+      const ts = Date.now();
+      setStartTimestamp(ts);
       setRunning(true);
       setOnBreak(false);
     }
@@ -285,14 +340,12 @@ export default function TimerPage() {
 
   const handlePause = () => {
     if (running) {
-      // Flush current segment into accumulatedMs
       if (!onBreak && startTimestamp !== null) {
         setAccumulatedMs((prev) => prev + (Date.now() - startTimestamp));
         setStartTimestamp(null);
       }
       setRunning(false);
     } else {
-      // Resume
       setStartTimestamp(Date.now());
       setRunning(true);
     }
@@ -301,23 +354,18 @@ export default function TimerPage() {
   const handleBreak = () => {
     if (!running) return;
     if (!onBreak) {
-      // Starting break: flush running segment
       if (startTimestamp !== null) {
         setAccumulatedMs((prev) => prev + (Date.now() - startTimestamp));
         setStartTimestamp(null);
       }
-      setBreakStartTimestamp(Date.now());
       setOnBreak(true);
     } else {
-      // Ending break: resume timer
-      setBreakStartTimestamp(null);
       setStartTimestamp(Date.now());
       setOnBreak(false);
     }
   };
 
   const handleStop = () => {
-    // Flush any running segment
     let finalMs = accumulatedMs;
     if (running && !onBreak && startTimestamp !== null) {
       finalMs += Date.now() - startTimestamp;
@@ -326,7 +374,6 @@ export default function TimerPage() {
     if (totalSeconds > 0) {
       const hrs = totalSeconds / 3600;
       const today = todayStr();
-      // Use functional updater to always operate on the latest stored value
       setDailyLog((prev) => {
         const safePrev =
           prev && typeof prev === "object" && !Array.isArray(prev) ? prev : {};
@@ -341,13 +388,12 @@ export default function TimerPage() {
         `Session saved: ${formatTime(totalSeconds)} added to today's log`,
       );
     }
-    // Reset all timer state
     setRunning(false);
     setOnBreak(false);
     setStartTimestamp(null);
     setAccumulatedMs(0);
-    setBreakStartTimestamp(null);
     setDisplaySeconds(0);
+    clearSession();
   };
 
   const [todayInput, setTodayInput] = useState("");
@@ -360,14 +406,10 @@ export default function TimerPage() {
       return;
     }
     const logDate = selectedLogDate;
-    // Use functional updater to always operate on the latest stored value
     setDailyLog((prev) => {
       const safePrev =
         prev && typeof prev === "object" && !Array.isArray(prev) ? prev : {};
-      return {
-        ...safePrev,
-        [logDate]: Math.round(val * 100) / 100,
-      };
+      return { ...safePrev, [logDate]: Math.round(val * 100) / 100 };
     });
     const isToday = logDate === todayStr();
     toast.success(
@@ -376,7 +418,6 @@ export default function TimerPage() {
     setTodayInput("");
   };
 
-  // --- Computed ---
   const today = todayStr();
   const now = new Date();
   const currentYear = now.getFullYear();
@@ -498,6 +539,11 @@ export default function TimerPage() {
                 ☕ On Break
               </Badge>
             )}
+            {running && (
+              <p className="text-[11px] text-primary/60 text-center">
+                ✓ Timer running — safe to switch pages
+              </p>
+            )}
             <div className="flex gap-3 flex-wrap justify-center">
               {!running ? (
                 <Button
@@ -521,8 +567,8 @@ export default function TimerPage() {
                   onClick={handlePause}
                   className="px-6 border-primary/40 text-primary hover:bg-primary/10"
                 >
-                  <Pause className="w-4 h-4 mr-2" />{" "}
-                  {onBreak ? "Resume" : "Pause"}
+                  <Pause className="w-4 h-4 mr-2" />
+                  {running && !onBreak ? "Pause" : "Resume"}
                 </Button>
               )}
               <Button
@@ -536,7 +582,7 @@ export default function TimerPage() {
                     : "border-border text-muted-foreground hover:text-foreground hover:bg-white/5"
                 }
               >
-                <Coffee className="w-4 h-4 mr-2" />{" "}
+                <Coffee className="w-4 h-4 mr-2" />
                 {onBreak ? "End Break" : "Break"}
               </Button>
               <Button
@@ -967,7 +1013,7 @@ export default function TimerPage() {
                           {formatHours(Math.round(weekHours * 10) / 10)}
                         </span>
                         <span className="text-[10px] text-muted-foreground/40">
-                          {isExpanded ? "\u25b2" : "\u25bc"}
+                          {isExpanded ? "▲" : "▼"}
                         </span>
                       </div>
                     </button>
@@ -1041,8 +1087,8 @@ export default function TimerPage() {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-amber-400" />
-                Year {currentYear}
+                <TrendingUp className="w-4 h-4 text-amber-400" /> Year{" "}
+                {currentYear}
               </CardTitle>
               <span className="font-mono text-sm font-semibold text-amber-400">
                 {formatHours(Math.round(thisYearHours * 10) / 10)}
