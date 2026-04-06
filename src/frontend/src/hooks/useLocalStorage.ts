@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export function useLocalStorage<T>(key: string, initialValue: T) {
-  const [storedValue, setStoredValue] = useState<T>(() => {
+  const [storedValue, setStoredValueRaw] = useState<T>(() => {
     try {
       const item = window.localStorage.getItem(key);
       return item ? (JSON.parse(item) as T) : initialValue;
@@ -10,13 +10,34 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
     }
   });
 
+  // Sync from localStorage whenever the key changes or the component remounts
   useEffect(() => {
     try {
-      window.localStorage.setItem(key, JSON.stringify(storedValue));
+      const item = window.localStorage.getItem(key);
+      if (item !== null) {
+        setStoredValueRaw(JSON.parse(item) as T);
+      }
     } catch {
       // ignore
     }
-  }, [key, storedValue]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+
+  const setStoredValue = useCallback(
+    (value: T | ((prev: T) => T)) => {
+      setStoredValueRaw((prev) => {
+        const next =
+          typeof value === "function" ? (value as (prev: T) => T)(prev) : value;
+        try {
+          window.localStorage.setItem(key, JSON.stringify(next));
+        } catch {
+          // ignore
+        }
+        return next;
+      });
+    },
+    [key],
+  );
 
   return [storedValue, setStoredValue] as const;
 }

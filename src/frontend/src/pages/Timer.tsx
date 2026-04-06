@@ -326,10 +326,16 @@ export default function TimerPage() {
     if (totalSeconds > 0) {
       const hrs = totalSeconds / 3600;
       const today = todayStr();
-      const current = dailyLog[today] || 0;
-      setDailyLog({
-        ...dailyLog,
-        [today]: Math.round((current + hrs) * 100) / 100,
+      // Use functional updater to always operate on the latest stored value
+      setDailyLog((prev) => {
+        const safePrev =
+          prev && typeof prev === "object" && !Array.isArray(prev) ? prev : {};
+        const current =
+          typeof safePrev[today] === "number" ? safePrev[today] : 0;
+        return {
+          ...safePrev,
+          [today]: Math.round((current + hrs) * 100) / 100,
+        };
       });
       toast.success(
         `Session saved: ${formatTime(totalSeconds)} added to today's log`,
@@ -353,13 +359,19 @@ export default function TimerPage() {
       toast.error("Please enter a valid number");
       return;
     }
-    setDailyLog({
-      ...dailyLog,
-      [selectedLogDate]: Math.round(val * 100) / 100,
+    const logDate = selectedLogDate;
+    // Use functional updater to always operate on the latest stored value
+    setDailyLog((prev) => {
+      const safePrev =
+        prev && typeof prev === "object" && !Array.isArray(prev) ? prev : {};
+      return {
+        ...safePrev,
+        [logDate]: Math.round(val * 100) / 100,
+      };
     });
-    const isToday = selectedLogDate === todayStr();
+    const isToday = logDate === todayStr();
     toast.success(
-      `Logged ${formatHours(val)} for ${isToday ? "today" : selectedLogDate}!`,
+      `Logged ${formatHours(val)} for ${isToday ? "today" : logDate}!`,
     );
     setTodayInput("");
   };
