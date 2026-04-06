@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { useBackendSync } from "./hooks/useBackendSync";
 import DailyTracker from "./pages/DailyTracker";
 import Dashboard from "./pages/Dashboard";
 import MissionJeet from "./pages/MissionJeet";
@@ -26,9 +27,73 @@ const NAV = [
   { id: "dailytracker" as Page, label: "Daily Tracker", icon: CheckSquare },
 ];
 
+function SyncIndicator({
+  status,
+}: { status: ReturnType<typeof useBackendSync>["syncStatus"] }) {
+  if (status === "idle") return null;
+
+  let dotColor = "";
+  let label = "";
+  let glowColor = "";
+
+  switch (status) {
+    case "loading":
+      dotColor = "bg-sky-400";
+      glowColor = "rgba(56,189,248,0.6)";
+      label = "Loading data...";
+      break;
+    case "saving":
+      dotColor = "bg-amber-400";
+      glowColor = "rgba(251,191,36,0.6)";
+      label = "Saving...";
+      break;
+    case "synced":
+      dotColor = "bg-emerald-400";
+      glowColor = "rgba(52,211,153,0.6)";
+      label = "✓ Saved";
+      break;
+    case "error":
+      dotColor = "bg-gray-400";
+      glowColor = "rgba(156,163,175,0.5)";
+      label = "Offline";
+      break;
+  }
+
+  return (
+    <div
+      className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
+      style={{
+        background: "rgba(255,255,255,0.05)",
+        border: "1px solid rgba(255,255,255,0.08)",
+        backdropFilter: "blur(8px)",
+      }}
+      data-ocid="sync.status"
+    >
+      <span
+        className={`w-1.5 h-1.5 rounded-full ${dotColor} ${status === "saving" || status === "loading" ? "animate-pulse" : ""}`}
+        style={{ boxShadow: `0 0 5px ${glowColor}` }}
+      />
+      <span
+        className={
+          status === "saving"
+            ? "text-amber-300"
+            : status === "synced"
+              ? "text-emerald-300"
+              : status === "error"
+                ? "text-gray-400"
+                : "text-sky-300"
+        }
+      >
+        {label}
+      </span>
+    </div>
+  );
+}
+
 export default function App() {
   const [page, setPage] = useState<Page>("dashboard");
   const [menuOpen, setMenuOpen] = useState(false);
+  const { syncStatus } = useBackendSync();
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -79,20 +144,25 @@ export default function App() {
             ))}
           </nav>
 
-          {/* Mobile menu button */}
-          <button
-            type="button"
-            data-ocid="nav.mobile.toggle"
-            aria-label="Toggle menu"
-            className="md:hidden text-foreground/60 hover:text-primary transition-colors p-2 rounded-lg hover:bg-primary/10"
-            onClick={() => setMenuOpen((v) => !v)}
-          >
-            {menuOpen ? (
-              <X className="w-5 h-5" />
-            ) : (
-              <Menu className="w-5 h-5" />
-            )}
-          </button>
+          {/* Right side: sync indicator + mobile menu button */}
+          <div className="flex items-center gap-2">
+            <SyncIndicator status={syncStatus} />
+
+            {/* Mobile menu button */}
+            <button
+              type="button"
+              data-ocid="nav.mobile.toggle"
+              aria-label="Toggle menu"
+              className="md:hidden text-foreground/60 hover:text-primary transition-colors p-2 rounded-lg hover:bg-primary/10"
+              onClick={() => setMenuOpen((v) => !v)}
+            >
+              {menuOpen ? (
+                <X className="w-5 h-5" />
+              ) : (
+                <Menu className="w-5 h-5" />
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Mobile nav */}

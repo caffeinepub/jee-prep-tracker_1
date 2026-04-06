@@ -1,30 +1,41 @@
-# AIR PREP — Daily Tracker Rev1 & Rev2
+# AIR PREP – Backend Persistence
 
 ## Current State
-The Daily Tracker shows a list of dates (grouped by month). Each day has two toggles: Module and DPP. Data is stored in `jee_daily_log` local storage key as `{ moduleDone, dppDone }`.
+All user data is stored in browser `localStorage` under these keys:
+- `jee_chapters` — syllabus progress (ClassMap: chapter done/notes/module/revisions/questions)
+- `jee_daily_log` — timer daily hours log (Record<string, number>) and also DailyTracker log (Record<string, DayLog>)
+- `jee_weekly_target` — weekly target hours (number)
+- `jee_prep_start_date` — prep start date string
+- `jee_daily_range` — daily tracker date range
+- `jee_mission_goal` — mission JEE goal date
+- `k3b_images` — K3B images array
+- `k3b_notes` — K3B notes text
+- `jee_timer_session` — live timer session state
+
+Problem: `localStorage` is per-browser and can be cleared when the app draft expires, the user clears browser data, or closes the app. Data is not truly permanent.
 
 ## Requested Changes (Diff)
 
 ### Add
-- **REV1 toggle** per day — "Revision 1" = quick revision of the latest lecture topic (done right after the lecture)
-- **REV2 toggle** per day — "Revision 2" = revision of all past topics (done before the upcoming lecture)
-- Both toggles stored in `DayLog` as `rev1Done` and `rev2Done`
-- Summary stats: REV1 count and REV2 count added to the summary bar
-- "All Done" badge logic updated to require all 4 (Module + DPP + Rev1 + Rev2)
-- Tooltip/label hints in the UI explaining the difference between Rev1 and Rev2
+- Motoko backend actor with stable storage for all user data:
+  - `saveAllData(json: Text) : async ()` — saves entire app state as a JSON blob per user identity
+  - `loadAllData() : async ?Text` — returns the saved JSON blob for the current caller
+- Frontend `usePersistentStorage` hook that:
+  - On mount: loads data from backend and merges it into localStorage (backend is source of truth)
+  - On every save: writes to localStorage (for instant reactivity) AND queues a backend sync
+  - On `beforeunload` / visibility change: flushes pending sync to backend
+  - Shows a small "Saving..." / "Saved" indicator
+- The entire app state is serialized as a single JSON object keyed by the localStorage keys above
 
 ### Modify
-- `DayLog` interface: add `rev1Done: boolean` and `rev2Done: boolean`
-- `DayRow` component: add two new toggle buttons after DPP, styled consistently
-- Summary card: expand grid from 4 to 6 stats (add Rev1 Done %, Rev2 Done %)
-- Month section header summary: add rev1/rev2 counts
+- `useLocalStorage` hook — wrap it so every write also triggers the background sync queue
+- App.tsx — add the sync provider wrapper and load data on startup
 
 ### Remove
 - Nothing removed
 
 ## Implementation Plan
-1. Extend `DayLog` interface with `rev1Done` and `rev2Done`
-2. Update `DayRow` to render REV1 and REV2 toggle buttons (styled in amber/orange for Rev1, purple for Rev2)
-3. Update `toggleDay` handler to accept new fields
-4. Update summary stats in summary bar and month section header
-5. Update "all done" badge condition
+1. Backend: Motoko actor with `HashMap<Principal, Text>` in stable storage. Expose `saveAllData(json)` and `loadAllData()` methods.
+2. Frontend hook `useBackendSync`: loads all data on mount, saves all data on changes with debounce (2s), also saves on `beforeunload` and `visibilitychange`.
+3. App.tsx: wrap app in a provider that initializes data from backend before rendering.
+4. All existing `useLocalStorage` calls remain unchanged — the sync layer reads/writes the same localStorage keys transparently.
