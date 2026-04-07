@@ -23,6 +23,22 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
+  // Re-read from localStorage when backend sync restores data
+  useEffect(() => {
+    const handleRestore = () => {
+      try {
+        const item = window.localStorage.getItem(key);
+        if (item !== null) {
+          setStoredValueRaw(JSON.parse(item) as T);
+        }
+      } catch {
+        // ignore
+      }
+    };
+    window.addEventListener("storage-restored", handleRestore);
+    return () => window.removeEventListener("storage-restored", handleRestore);
+  }, [key]);
+
   const setStoredValue = useCallback(
     (value: T | ((prev: T) => T)) => {
       setStoredValueRaw((prev) => {

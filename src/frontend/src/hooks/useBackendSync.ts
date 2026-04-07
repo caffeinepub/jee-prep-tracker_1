@@ -12,10 +12,11 @@ const SYNC_KEYS = [
   "jee_mission_goal",
   "k3b_images",
   "k3b_notes",
+  "jee_timer_session",
 ] as const;
 
 // How long to wait after a change before saving (debounce)
-const DEBOUNCE_MS = 2000;
+const DEBOUNCE_MS = 1500;
 // How often to check localStorage for changes
 const POLL_INTERVAL_MS = 3000;
 // How long to show "synced" badge before hiding
@@ -122,27 +123,32 @@ export function useBackendSync() {
       try {
         const json = await actor.loadAllData();
         if (json) {
+          // Restore data to localStorage FIRST
           restoreSnapshot(json);
-          lastSavedSnapshotRef.current = json;
-          // Dispatch a storage event so any open hooks can re-sync
+          // Dispatch event so all useLocalStorage hooks re-read their values
           window.dispatchEvent(new Event("storage-restored"));
+          // Set the baseline AFTER restoring, using the restored data as source of truth
+          // This prevents the polling loop from immediately trying to overwrite with stale data
+          lastSavedSnapshotRef.current = json;
+        } else {
+          // No data on backend yet — take current localStorage as baseline
+          const snapshot = snapshotLocalStorage();
+          lastSavedSnapshotRef.current = serializeSnapshot(snapshot);
         }
-        // Take initial snapshot baseline
-        const snapshot = snapshotLocalStorage();
-        lastSavedSnapshotRef.current = serializeSnapshot(snapshot);
         showSynced();
       } catch {
         setSyncStatus("error");
+        // Even on error, set baseline so polling can still detect future changes
+        const snapshot = snapshotLocalStorage();
+        lastSavedSnapshotRef.current = serializeSnapshot(snapshot);
       }
     })();
   }, [actor, isFetching, showSynced]);
 
   // Poll localStorage for changes every POLL_INTERVAL_MS
   useEffect(() => {
-    if (!initialLoadDoneRef.current && !actor) return;
-
     const interval = setInterval(() => {
-      if (!actorRef.current) return;
+      if (!actorRef.current || !initialLoadDoneRef.current) return;
       const snapshot = snapshotLocalStorage();
       const serialized = serializeSnapshot(snapshot);
       if (serialized !== lastSavedSnapshotRef.current) {
@@ -151,7 +157,7 @@ export function useBackendSync() {
     }, POLL_INTERVAL_MS);
 
     return () => clearInterval(interval);
-  }, [actor, scheduleSave]);
+  }, [scheduleSave]);
 
   // Save immediately on tab hide / page close
   useEffect(() => {

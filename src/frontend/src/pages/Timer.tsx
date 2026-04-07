@@ -288,6 +288,19 @@ export default function TimerPage() {
     writeSession({ running, onBreak, accumulatedMs, startTimestamp });
   }, [running, onBreak, accumulatedMs, startTimestamp]);
 
+  // Re-load timer session when backend sync restores data from the cloud
+  useEffect(() => {
+    const handleRestore = () => {
+      const restored = readSession();
+      setRunning(restored.running);
+      setOnBreak(restored.onBreak);
+      setAccumulatedMs(restored.accumulatedMs);
+      setStartTimestamp(restored.startTimestamp);
+    };
+    window.addEventListener("storage-restored", handleRestore);
+    return () => window.removeEventListener("storage-restored", handleRestore);
+  }, []);
+
   const getElapsedSeconds = useCallback((): number => {
     let ms = accumulatedMs;
     if (running && !onBreak && startTimestamp !== null) {
