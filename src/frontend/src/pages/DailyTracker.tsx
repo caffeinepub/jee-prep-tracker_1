@@ -315,12 +315,38 @@ function MonthSection({
 }
 
 export default function DailyTracker() {
+  // One-time migration: move old jee_daily_log (DayLog format) data to jee_tracker_log
+  // This runs once to preserve data from before the key was renamed
+  useEffect(() => {
+    try {
+      const oldData = window.localStorage.getItem("jee_daily_log");
+      const newData = window.localStorage.getItem("jee_tracker_log");
+      if (oldData && !newData) {
+        // Check if the old data looks like DayLog (has moduleDone/dppDone) not timer hours
+        const parsed = JSON.parse(oldData);
+        const isTrackerData =
+          typeof parsed === "object" &&
+          !Array.isArray(parsed) &&
+          Object.values(parsed).some(
+            (v: unknown) =>
+              v && typeof v === "object" && "moduleDone" in (v as object),
+          );
+        if (isTrackerData) {
+          window.localStorage.setItem("jee_tracker_log", oldData);
+        }
+      }
+    } catch {
+      // ignore migration errors
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const [dateRange, setDateRange] = useLocalStorage<DateRange | null>(
     "jee_daily_range",
     null,
   );
   const [dailyLog, setDailyLog] = useLocalStorage<Record<string, DayLog>>(
-    "jee_daily_log",
+    "jee_tracker_log",
     {},
   );
 

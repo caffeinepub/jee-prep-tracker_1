@@ -6,6 +6,7 @@ export type SyncStatus = "loading" | "synced" | "saving" | "error" | "idle";
 const SYNC_KEYS = [
   "jee_chapters",
   "jee_daily_log",
+  "jee_tracker_log",
   "jee_weekly_target",
   "jee_prep_start_date",
   "jee_daily_range",
