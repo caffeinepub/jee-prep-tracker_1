@@ -70,7 +70,9 @@ function SyncIndicator({
       data-ocid="sync.status"
     >
       <span
-        className={`w-1.5 h-1.5 rounded-full ${dotColor} ${status === "saving" || status === "loading" ? "animate-pulse" : ""}`}
+        className={`w-1.5 h-1.5 rounded-full ${dotColor} ${
+          status === "saving" || status === "loading" ? "animate-pulse" : ""
+        }`}
         style={{ boxShadow: `0 0 5px ${glowColor}` }}
       />
       <span
@@ -202,17 +204,28 @@ export default function App() {
         )}
       </header>
 
-      {/* Main */}
+      {/* Main — ALL pages stay mounted; only display toggles */}
       <main className="flex-1">
-        {page === "dashboard" && <Dashboard onNavigate={setPage} />}
-        {page === "missionjeet" && <MissionJeet onNavigate={setPage} />}
-        {page === "syllabus" && <Syllabus />}
-        {page === "timer" && (
+        {/* Each page is always mounted but hidden when not active.
+            This prevents React from unmounting components on navigation,
+            which was causing timer and tracker state to reset. */}
+        <div style={{ display: page === "dashboard" ? "block" : "none" }}>
+          <Dashboard onNavigate={setPage} />
+        </div>
+        <div style={{ display: page === "missionjeet" ? "block" : "none" }}>
+          <MissionJeet onNavigate={setPage} />
+        </div>
+        <div style={{ display: page === "syllabus" ? "block" : "none" }}>
+          <Syllabus />
+        </div>
+        <div style={{ display: page === "timer" ? "block" : "none" }}>
           <ErrorBoundary>
             <TimerPage />
           </ErrorBoundary>
-        )}
-        {page === "dailytracker" && <DailyTracker />}
+        </div>
+        <div style={{ display: page === "dailytracker" ? "block" : "none" }}>
+          <DailyTracker />
+        </div>
       </main>
 
       {/* Footer */}
