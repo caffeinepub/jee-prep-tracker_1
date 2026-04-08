@@ -2,21 +2,31 @@ import Map "mo:core/Map";
 import Principal "mo:core/Principal";
 
 module {
-  type OldActor = {};
+  // Old types inline — from previous version that used authorization mixin
+  type UserRole = { #admin; #guest; #user };
+  type AccessControlState = {
+    var adminAssigned : Bool;
+    userRoles : Map.Map<Principal, UserRole>;
+  };
+
+  type UserProfile = { name : Text };
+
+  type OldActor = {
+    accessControlState : AccessControlState;
+    userData : Map.Map<Principal, Text>;
+    userProfiles : Map.Map<Principal, UserProfile>;
+  };
+
   type NewActor = {
     userData : Map.Map<Principal, Text>;
     userProfiles : Map.Map<Principal, UserProfile>;
   };
 
-  type UserProfile = {
-    name : Text;
-  };
-
   public func run(old : OldActor) : NewActor {
+    // Drop accessControlState intentionally — authorization mixin removed
     {
-      old with
-      userData = Map.empty<Principal, Text>();
-      userProfiles = Map.empty<Principal, UserProfile>();
+      userData = old.userData;
+      userProfiles = old.userProfiles;
     };
   };
 };

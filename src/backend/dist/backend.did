@@ -1,0 +1,7 @@
+type UserProfile = record {name: text;};
+service : {
+  getCallerUserProfile: () -> (opt UserProfile) query;
+  loadAllData: () -> (opt text) query;
+  saveAllData: (json: text) -> ();
+  saveCallerUserProfile: (profile: UserProfile) -> ();
+}

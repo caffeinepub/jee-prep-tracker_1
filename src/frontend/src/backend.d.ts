@@ -10,17 +10,8 @@ export type Option<T> = Some<T> | None;
 export interface UserProfile {
     name: string;
 }
-export enum UserRole {
-    admin = "admin",
-    user = "user",
-    guest = "guest"
-}
 export interface backendInterface {
-    assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     getCallerUserProfile(): Promise<UserProfile | null>;
-    getCallerUserRole(): Promise<UserRole>;
-    getUserProfile(user: Principal): Promise<UserProfile | null>;
-    isCallerAdmin(): Promise<boolean>;
     loadAllData(): Promise<string | null>;
     saveAllData(json: string): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;

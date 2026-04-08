@@ -1,5 +1,6 @@
+import { useActor } from "@caffeineai/core-infrastructure";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useActor } from "./useActor";
+import { createActor } from "../backend";
 
 export type SyncStatus = "loading" | "synced" | "saving" | "error" | "idle";
 
@@ -61,7 +62,7 @@ function restoreSnapshot(json: string): void {
 }
 
 export function useBackendSync() {
-  const { actor, isFetching } = useActor();
+  const { actor, isFetching } = useActor(createActor);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>("idle");
 
   // Track the last snapshot we saved to detect real changes
